@@ -1,0 +1,49 @@
+
+--------------- Used up to case 3 ---------------------
+#---- Run HMC sampler ---- #
+# ---- We are doing inference on only a single object.
+title_str = "case3"
+# case 1: 20 mag, dt_xy=1e-2, dt_f = 10., L_low = 5, L_high = 20
+# case 2: 20 mag, dt_xy=1e-2, dt_f = 10., L_low = 50, L_high = 200
+# case 3: 15 mag, dt_xy=1e-5, dt_f = 10., L_low = 50, L_high = 200 # Failed. If dt_xy = 1e-2, then steps are too big.
+# case 4: 18 mag, dt_xy=1e-2, dt_f = 10., L_low = 50, L_high = 200 # If dt_xy = 1e-2, then steps are too big.
+
+# ---- Run parameters
+Dim = objs_flat.size
+Niter = 1000
+Nchain = 2
+N_warm_up = 500
+R_thin = 1
+N_save_chain0 = 100
+
+# Time steps
+global_dt = False # If True, same time step for all variables.
+dt_f = 10.
+dt_xy = 1e-5
+dt = np.array([dt_f, dt_xy, dt_xy])
+
+# Starting points
+objs_flat_start = np.zeros((Nchain, objs_flat.size))
+for i in range(Nchain):
+    objs_flat_start[i, :] = np.copy(objs_flat)
+#     objs_flat_start[i, 0] += 0 # flux of 1st
+    objs_flat_start[i, 1] += np.random.random()-1 # x of 1st
+#     objs_flat_start[i, 2] += 0 # y of 1st
+q_start = objs_flat_start
+
+# --- Random trajectory length ---- #
+L_low = 50
+L_high = 200
+HMC1 = HMC_sampler(Dim, V, dVdq, Niter=Niter, Nchain=Nchain, sampler_type="Random", L_low=L_low, \
+                  L_high=L_high, global_dt = False, dt=dt, thin_rate=R_thin, warm_up_num = N_warm_up)
+HMC1.gen_sample(q_start, N_save_chain0 = N_save_chain0)
+
+HMC1.compute_convergence_stats()
+HMC1.plot_samples(title_prefix=title_str, savefig=False, show=True, plot_normal=False, q0=None, cov0=None, plot_cov=False)
+HMC1.make_movie(title_prefix=title_str)
+
+print "Random"
+print "Total number of samples: %d" % ((HMC1.L_chain-1) * HMC1.Nchain)
+print "Effective number per param: ", HMC1.n_eff_q
+print "Ratio", HMC1.n_eff_q/((HMC1.L_chain-1) * HMC1.Nchain)
+print "\n"
