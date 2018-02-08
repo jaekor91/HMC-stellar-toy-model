@@ -14,7 +14,6 @@ import time
 from scipy.stats import multivariate_normal
 from scipy.stats import norm
 
-import numpy as np
 from scipy.stats import norm, chi2
 from matplotlib.patches import Ellipse
 
