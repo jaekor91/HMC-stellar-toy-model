@@ -528,4 +528,50 @@ def poisson_realization(D0):
         for j in xrange(D0.shape[1]):
             D[i, j] = np.random.poisson(lam=D0[i, j], size=1)
     return D
+
+
+#---- Define Potential and Gradient
+def V(objs_flat, D):
+    """
+    Negative Poisson log-likelihood given data and model.
     
+    The model is specified by the list of objs, which are provided
+    as a flattened list [Nobjs x 3](e.g., [f1, x1, y1, f2, x2, y2, ...])
+    
+    Assume a fixed background.
+    """
+    Nobjs = objs_flat.size // 3 # Number of objects
+    Lambda = np.ones_like(D) * B_count # Model set to background
+    for i in range(Nobjs): # Add every object.
+        f, x, y = objs_flat[3*i:3*i+3]
+        Lambda += f * gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
+    return -np.sum(D * np.log(Lambda) - Lambda)
+
+def dVdq(objs_flat, D):
+    """
+    Gradient of Poisson pontentia above.    
+    """
+    # Place holder for the gradient.
+    grad = np.zeros(objs_flat.size)
+    
+    # Compute the model.
+    Nobjs = objs_flat.size // 3 # Number of objects
+    Lambda = np.ones_like(D) * B_count # Model set to background
+    for i in range(Nobjs): # Add every object.
+        f, x, y = objs_flat[3*i:3*i+3]
+        Lambda += f * gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
+    
+    # Variable to be recycled
+    rho = (D/Lambda)-1.# (D_lm/Lambda_lm - 1)
+    # Compute f, x, y gradient for each object
+    lv = np.arange(0, num_rows)
+    mv = np.arange(0, num_cols)
+    mv, lv = np.meshgrid(lv, mv)
+    var = (PSF_FWHM_pix/2.354)**2
+    for i in range(Nobjs):
+        f, x, y = objs_flat[3*i:3*i+3]
+        PSF = gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
+        grad[3*i] = -np.sum(rho * PSF) # flux grad
+        grad[3*i+1] = -np.sum(rho * (lv - x + 0.5) * PSF) * f / var
+        grad[3*i+2] = -np.sum(rho * (mv - y + 0.5) * PSF) * f / var
+    return grad
