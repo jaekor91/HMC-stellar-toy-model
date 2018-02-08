@@ -1,0 +1,36 @@
+Notes: 
+- All figures should be saved in ./figures/
+
+
+/---- Exploring the typical set geometry of one star
+Image
+- Notes: Truth (or model) images with varying magnitudes.
+- Script used: one-star-images.py
+- Products:
+	- one-star-image.png
+
+Potential
+- Notes: Various exploratory plots.
+- Script used: one-star-potential.py
+- Products:
+	- one-star-V_dx.png: Plots of potential as a function of dx = (deviation in x direction from true x). Each panel corresponds to different true flux and dy.
+	- one-star-V_m.png: Plots ofpotential as a function of model mag m. Each panel corresponds to different true m and shows plots of how the potential varies as a function of dr = dx.
+	- one-star-V_dx_m.png: Plots of potential as a function of dx and model m. Each panel corresponds to different true flux and dy.
+	- one-star-V_dx_dy.png: Plots of potential as a function of dx and dy. Each panel corresponds to different combination of true and model fluxes.
+
+Gradients
+- dV(x)/dx at various y's including the correct one; f variation [15, 24]
+- dV(x, f)/dx at various y's including the correct one
+- V(x, y) at various f's
+
+
+
+
+/---- Exploring the typical set geometry of two stars
+Study problems of non-identifiability here.
+Create informative diagonostic plots.
+Store gradients.
+
+
+/---- Repulsive potentials
+Form: f_j * f_k * e^[-g(f_j * f_k) * r] [1/|x_j-x_k| + 1/|y_j-y_k|]
