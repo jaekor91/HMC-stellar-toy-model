@@ -19,10 +19,21 @@ Potential
 	- one-star-V_dx_dy.png: Plots of potential as a function of dx and dy. Each panel corresponds to different combination of true and model fluxes.
 
 Gradients
-- dV(x)/dx at various y's including the correct one; f variation [15, 24]
-- dV(x, f)/dx at various y's including the correct one
-- V(x, y) at various f's
+- Notes: Gradient of the potential. Based on the images given in one-star-potential cases.
+- Script used: one-star-grads.py
+- Products:
+	- one-star-dVdx_dx.png
+	- one-star-dVdf_m.png
+	- one-star-dVdx_dx_m.png
+	- one-star-dVdf_dx_m.png: vmax=1. This way, we can see gradients turn positive vs. negative.	
+	- one-star-dVdx_dx_dy.png
 
+
+/---- Inference on one star problem
+Q& A:
+- Q: What happens if a star is initialized at various magnitudes when in fact there is no star? Is there a way to algorithmic eliminate such stars?
+A: 
+- Q:
 
 
 
@@ -34,3 +45,29 @@ Store gradients.
 
 /---- Repulsive potentials
 Form: f_j * f_k * e^[-g(f_j * f_k) * r] [1/|x_j-x_k| + 1/|y_j-y_k|]
+
+
+
+/---- Failed ideas
+Post-hoc ordering of samples: 
+A series of deterministic binary reduction mapping as a post-hoc. Recovers convergence statistics
+
+/---- For later considerations
+Use HD5
+Look at the simulations to see if you can gain any insight!
+	https://chi-feng.github.io/mcmc-demo/app.html#HamiltonianMC,banana
+Friction during burin-in
+Blocking
+Perhaps, the model could work by adding one star at a time and waiting until burn-in...
+Repeat and see whether increasing number of stars can get accepted!
+	- Study whether the number of stars can be determined this way... My guess is that once a star has fallen into its own well, it will stay there... Unless a fortuitous kicks to a parallel direction displaces one but not the other.
+	- Empirical Bayes approach?
+	- Stars can be randomly added... Only accept a star if... What criteria should be met?
+Different parameterization to regularize gradient! Step in magnitude space and x/f, y/f
+	Reparameterization doesn't reallly work!
+Background can also be estimated :o 
+Should be regularized... Hierarchical model? :o Spatial prior?
+How do you approximate PSF?
+C implementation
+Admissibility -- All of stats?
+When a new object is proposed, accept it only if it meets certain criteria
