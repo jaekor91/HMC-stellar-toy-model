@@ -38,73 +38,73 @@ dir_figures ="./figures/"
 
 
 
-	#---- V(dx) at various y's including the correct one; f variation [15, 24]
-	# Rows correspond to different true f values
-	# Columns correspond to different y values
-	# Each panel shows V(dx) at various model f values
-	dx = np.arange(-10, 10+0.5/2., 0.5)
-	dy = np.arange(-10, 0.+0.5/2., 2)
-	mag_arr = np.arange(15, 23, 1)
+#---- V(dx) at various y's including the correct one; f variation [15, 24]
+# Rows correspond to different true f values
+# Columns correspond to different y values
+# Each panel shows V(dx) at various model f values
+dx = np.arange(-10, 10+0.5/2., 0.5)
+dy = np.arange(-10, 0.+0.5/2., 2)
+mag_arr = np.arange(15, 23, 1)
 
-	# Number of rows and columns
-	Nrows = mag_arr.size
-	Ncols = dy.size
+# Number of rows and columns
+Nrows = mag_arr.size
+Ncols = dy.size
 
-	# Create figure
-	fig, ax_list = plt.subplots(Nrows, Ncols, figsize=(70, 100))
+# Create figure
+fig, ax_list = plt.subplots(Nrows, Ncols, figsize=(70, 100))
 
-	# Loop through panels 
-	for i, mag_true in enumerate(mag_arr):
-	    for j, dy_fixed in enumerate(dy):
-	        #---- Generate a mock image given a list of objects x, y, f.
-	        objs = np.array([[mag2flux(mag_true) * flux_to_count, num_rows/2., num_cols/2.]])
-	        # Generate a blank image with background
-	        D0 = np.ones((num_rows, num_cols), dtype=float) * B_count 
-	        # Insert objects: For each object, evaluate the PSF located at x and y position
-	        f, x, y = objs[0]
-	        D0 += f * gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
-	        # Poission realization D of the underlying truth D0
-	        D = poisson_realization(D0)
+# Loop through panels 
+for i, mag_true in enumerate(mag_arr):
+    for j, dy_fixed in enumerate(dy):
+        #---- Generate a mock image given a list of objects x, y, f.
+        objs = np.array([[mag2flux(mag_true) * flux_to_count, num_rows/2., num_cols/2.]])
+        # Generate a blank image with background
+        D0 = np.ones((num_rows, num_cols), dtype=float) * B_count 
+        # Insert objects: For each object, evaluate the PSF located at x and y position
+        f, x, y = objs[0]
+        D0 += f * gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
+        # Poission realization D of the underlying truth D0
+        D = poisson_realization(D0)
 
-	        # Define potential
-	        def V(objs_flat):
-	            """
-	            Negative Poisson log-likelihood given data and model.
+        # Define potential
+        def V(objs_flat):
+            """
+            Negative Poisson log-likelihood given data and model.
 
-	            The model is specified by the list of objs, which are provided
-	            as a flattened list [Nobjs x 3](e.g., [f1, x1, y1, f2, x2, y2, ...])
+            The model is specified by the list of objs, which are provided
+            as a flattened list [Nobjs x 3](e.g., [f1, x1, y1, f2, x2, y2, ...])
 
-	            Assume a fixed background.
-	            """
-	            Nobjs = objs_flat.size // 3 # Number of objects
-	            Lambda = np.ones_like(D) * B_count # Model set to background
-	            for i in range(Nobjs): # Add every object.
-	                f, x, y = objs_flat[3*i:3*i+3]
-	                Lambda += f * gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
-	            return -np.sum(D * np.log(Lambda) - Lambda)
-	        
-	        # For each flux guess, generate a V(dx) curve corresponding to true f value
-	        for mag_model in mag_arr:
-	            if mag_model >= (mag_true-2): # Only plot those that are at most two magnitudes brigther.
-	                V_dx = np.zeros_like(dx)
-	                for k, dx_tmp in enumerate(dx):
-	                    objs1 = np.copy(objs) # Create model objects 
-	                    objs1[0, 0] = mag2flux(mag_model) * flux_to_count
-	                    objs1[0, 1] += dx_tmp # Perturb model objects
-	                    objs1[0, 2] += dy_fixed
-	                    objs_flat = objs1.flatten()     
-	                    V_dx[k] = V(objs_flat) # Compute potential based on the model object
-	                ax_list[i, j].plot(dx, V_dx, lw=3, label="M=%d" % mag_model)
-	            
-	        # Panel decoration
-	        ft_size = 25
-	        ax_list[i, j].set_title("mag_true/dy: %.1f/%.2f" % (mag_true, dy_fixed), fontsize=ft_size)
-	        ax_list[i, j].set_xlabel("dx", fontsize=ft_size)
-	        ax_list[i, j].set_ylabel("V(dx)", fontsize=ft_size)            
-	        ax_list[i, j].legend(loc="lower right", fontsize=ft_size*0.8)
-	plt.savefig(dir_figures+"one-star-V_dx.png", dpi=200, bbox_inches="tight")
-	# plt.show()
-	plt.close()
+            Assume a fixed background.
+            """
+            Nobjs = objs_flat.size // 3 # Number of objects
+            Lambda = np.ones_like(D) * B_count # Model set to background
+            for i in range(Nobjs): # Add every object.
+                f, x, y = objs_flat[3*i:3*i+3]
+                Lambda += f * gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
+            return -np.sum(D * np.log(Lambda) - Lambda)
+        
+        # For each flux guess, generate a V(dx) curve corresponding to true f value
+        for mag_model in mag_arr:
+            if mag_model >= (mag_true-2): # Only plot those that are at most two magnitudes brigther.
+                V_dx = np.zeros_like(dx)
+                for k, dx_tmp in enumerate(dx):
+                    objs1 = np.copy(objs) # Create model objects 
+                    objs1[0, 0] = mag2flux(mag_model) * flux_to_count
+                    objs1[0, 1] += dx_tmp # Perturb model objects
+                    objs1[0, 2] += dy_fixed
+                    objs_flat = objs1.flatten()     
+                    V_dx[k] = V(objs_flat) # Compute potential based on the model object
+                ax_list[i, j].plot(dx, V_dx, lw=3, label="M=%d" % mag_model)
+            
+        # Panel decoration
+        ft_size = 25
+        ax_list[i, j].set_title("mag_true/dy: %.1f/%.2f" % (mag_true, dy_fixed), fontsize=ft_size)
+        ax_list[i, j].set_xlabel("dx", fontsize=ft_size)
+        ax_list[i, j].set_ylabel("V(dx)", fontsize=ft_size)            
+        ax_list[i, j].legend(loc="lower right", fontsize=ft_size*0.8)
+plt.savefig(dir_figures+"one-star-V_dx.png", dpi=200, bbox_inches="tight")
+# plt.show()
+plt.close()
 
 
 
