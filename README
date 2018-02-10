@@ -38,11 +38,11 @@ General strategy:
 - Animation: Make an animation of how the trajectory unfolds...
 
 One particle history with various initial magnitudes
-- Notes: Employing friction (F=-alpha * v, alpha_xy = 1e-2, alpha_f = 1e-3) and adaptive time step scheme (dt_xy = 1/f and dt_f = 1e-2 * f), I was able to deduce that particles when placed in a no star field quickly diminishes in flux. The particle wanders away from the initial field a little bit too. The below script generate history (particle trajectory, momentum, time step size, etc. vs. time) for a single particle for magnitude range [15, 22] with incremetn of 1. 
+- Notes: Follow the trajectory of a single particle including d_tx and so on. 
 - Script used: one-star-in-background-single-history.py
 - Products:
-	- one-star-in-background-mag**-single-history.png
-	
+	- one-star-in-background-mag**-model-mag**-single-history.png
+
 
 
 /---- One star *mode* inference problem
