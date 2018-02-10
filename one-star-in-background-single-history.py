@@ -134,7 +134,7 @@ for j, mag_B in enumerate([23., 25., 27.]):
 			i = 0 
 			grad = dVdq(phi_t[i, :])
 			grads_t[i]= grad
-			p_t[i, :] = np.array([-mag2flux(25) * flux_to_count, 0, 0]) - dt * grad / 2. # We assume unit covariance momentum matrix.
+			p_t[i, :] = (1-alpha * dt) * np.array([-mag2flux(25) * flux_to_count, 0, 0]) - dt * grad / 2. # We assume unit covariance momentum matrix.
 
 			for i in range(1, Nsample):
 				# Update position
