@@ -24,15 +24,11 @@ flux_to_count = 1./(ADU_to_flux * gain) # Flux to count conversion
 
 #---- Step size coeff
 dt_xy_coeff = [1., 5e-1, 1e-1] # Smaller coefficient for deeper image
-dt_f_coeff = [1e-2, 1e-2, 1e-2]
-
-#---- Friction coefficients
-# alphas = np.array([[1e-3, 1e-1, 1e-1], [1e-3, 1e-2, 1e-2], [1e-3, 1e-2, 1e-2]])
-alphas = np.array([[0, 0, 0]]*3)
+dt_f_coeff = [1e-1, 1e-1, 1e-1]
 
 
 #---- Background chosen to be integer.
-for j, mag_B in enumerate([23., 25., 27.]):
+for j, mag_B in enumerate([23.]): 
 	if j  == -1:
 		pass
 	else: 
@@ -40,7 +36,7 @@ for j, mag_B in enumerate([23., 25., 27.]):
 		B_count = mag2flux(mag_B) * flux_to_count
 
 		# Minimum flux
-		fmin = B_count
+		fmin = mag2flux(mag_B-1) * flux_to_count
 
 		# Size of the image
 		num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
@@ -48,7 +44,7 @@ for j, mag_B in enumerate([23., 25., 27.]):
 		# Number of time steps
 		Nsample = 1000
 
-		dir_figures = "./figures/"
+		dir_figures = "./figures/one-star-in-background/"
 
 
 		#---- Single history to pick the best mode inference parameters including viscosity parameters alpha and 
@@ -113,16 +109,13 @@ for j, mag_B in enumerate([23., 25., 27.]):
 			#---- Allocate memory for the trajectory and initialize
 			phi_t = np.zeros((Nsample, 3)) # We are considering only one particle.
 			phi_t[0] = np.array([mag2flux(mag_model) * flux_to_count, num_rows/2., num_cols/2.])
-			p_t = np.zeros((Nsample, 3)) # Momentum initially set to zero.
-
-
 
 			# Memory for time and gradients
-			dt_t = np.zeros_like(p_t)
-			grads_t = np.zeros_like(p_t)
+			dt_t = np.zeros_like(phi_t)
+			grads_t = np.zeros_like(phi_t)
 
-			# Viscosity term for velocity
-			alpha = alphas[j]
+			# Memory for potential
+			V_t = np.zeros(Nsample)
 
 			#---- *Time* evolution where step sizes are adjusted by flux.
 			# Compute intial time steps
@@ -132,13 +125,10 @@ for j, mag_B in enumerate([23., 25., 27.]):
 			dt_t[0] = dt
 			# Compute the first leap frog step t = 1/2
 			i = 0 
-			grad = dVdq(phi_t[i, :])
-			grads_t[i]= grad
-			p_t[i, :] = (1-alpha * dt) * np.array([-mag2flux(25) * flux_to_count, 0, 0]) - dt * grad / 2. # We assume unit covariance momentum matrix.
-
 			for i in range(1, Nsample):
-				# Update position
-				q_tmp = phi_t[i-1] + dt * p_t[i-1]
+				grad = dVdq(phi_t[i-1])
+				grads_t[i-1]= grad
+				q_tmp = phi_t[i-1] - dt * grad 
 				if q_tmp[0] < fmin:
 					break
 				phi_t[i] = q_tmp
@@ -149,13 +139,11 @@ for j, mag_B in enumerate([23., 25., 27.]):
 				dt = np.array([dt_f, dt_xy, dt_xy])
 				dt_t[i] = dt
 
-				# Update momentum to next half step t = i + 0.5
-				grad = dVdq(phi_t[i])
-				grads_t[i]= grad    
-				p_t[i] = (1.-alpha * dt) * p_t[i-1] - dt * grad
+				# Save the potential
+				V_t[i] = V(phi_t[i])
 
 			plt.close()
-			fig, ax_list = plt.subplots(6, 2, figsize=(25, 20))
+			fig, ax_list = plt.subplots(5, 2, figsize=(21, 20))
 			#---- xy
 			# xy
 			ax_list[0, 0].plot(range(i), phi_t[:i, 1], label="x", c="black")
@@ -172,14 +160,9 @@ for j, mag_B in enumerate([23., 25., 27.]):
 			ax_list[3, 0].plot(range(i), grads_t[:i, 1] * dt_t[:i, 1], label="x", c="black")
 			ax_list[3, 0].plot(range(i), grads_t[:i, 2] * dt_t[:i, 2], label="y", c="red")
 			ax_list[3, 0].set_ylabel("dt_xy * dV/dxy", fontsize=20)
-			# Momentum xy
-			ax_list[4, 0].plot(range(i), p_t[:i, 1], label="x", c="black")
-			ax_list[4, 0].plot(range(i), p_t[:i, 2], label="y", c="red")
-			ax_list[4, 0].set_ylabel("p_xy", fontsize=20)
-			# Momentum xy * time_step
-			ax_list[5, 0].plot(range(i), p_t[:i, 1]* dt_t[:i, 1], label="x", c="black")
-			ax_list[5, 0].plot(range(i), p_t[:i, 2]* dt_t[:i, 2], label="y", c="red")
-			ax_list[5, 0].set_ylabel("p_xy * dt_xy", fontsize=20)
+			# Potential
+			ax_list[4, 0].plot(range(i), V_t[:i], label="x", c="black")
+			ax_list[4, 0].set_ylabel("V_t", fontsize=20)
 
 
 			#---- Mag
@@ -198,12 +181,7 @@ for j, mag_B in enumerate([23., 25., 27.]):
 			ax_list[3, 1].plot(range(Nsample_sub), grads_t[:Nsample_sub, 0] * dt_t[:Nsample_sub, 0], c="black")
 			ax_list[3, 1].set_ylabel("dt_f * dV/df", fontsize=20)
 			# Momentum f
-			ax_list[4, 1].plot(range(Nsample_sub), p_t[:Nsample_sub, 0], c="black")
-			ax_list[4, 1].set_ylabel("p_f", fontsize=20)
-			# Momentum f
-			ax_list[5, 1].plot(range(Nsample_sub), p_t[:Nsample_sub, 0] * dt_t[:Nsample_sub, 0], c="black")
-			ax_list[5, 1].set_ylabel("p_f * dt_f", fontsize=20)
-
+			ax_list[4, 1].axis("off")
 		#     plt.show()
 			plt.savefig(dir_figures+"one-star-in-mag%d-background-model-mag%d-single-history.png" % (mag_B, mag_model), dpi=200, bbox_inches="tight")
 			plt.close()        
