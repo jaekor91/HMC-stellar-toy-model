@@ -25,11 +25,8 @@ B_ADU = 179 # Background in ADU.
 flux_to_count = 1./(ADU_to_flux * gain) # Flux to count conversion
 
 #---- Step size coeff
-dt_xy_coeff = [1., 5e-1, 5e-2] # Smaller coefficient for deeper image
-dt_f_coeff = [1e-2, 2e-2, 1e-2]
-
-#---- Friction coefficients
-alphas = np.array([[0, 0, 0]]*3)
+dt_xy_coeff = [1e-1, 5e-1, 5e-2] # Smaller coefficient for deeper image
+dt_f_coeff = [1e-1, 2e-2, 1e-2]
 
 # Number of time steps
 Nsample = 1000
@@ -43,7 +40,7 @@ Nhistory = 1000
 num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
 
 #---- Background chosen to be integer.
-for j, mag_B in enumerate([23., 25., 27.]):
+for j, mag_B in enumerate([23.]):# ., 25., 27.]):
     if j == -1:
         pass
     else:
@@ -52,10 +49,10 @@ for j, mag_B in enumerate([23., 25., 27.]):
         B_count = mag2flux(mag_B) * flux_to_count # B_ADU/gain
 
         # Minimum flux
-        fmin = B_count
+        fmin = mag2flux(mag_B-1.5) * flux_to_count # B_ADU/gain
 
         #---- Select magnitude of the star to use
-        mag_arr = np.arange(mag_B-4, mag_B, 1)
+        mag_arr = np.arange(mag_B-4, mag_B-1, 1)
         for mag_model in mag_arr:
             print "/---- mag = %d" % mag_model
             plt.close()
@@ -117,32 +114,26 @@ for j, mag_B in enumerate([23., 25., 27.]):
                 #---- Allocate memory for the trajectory and initialize
                 phi_t = np.zeros((Nsample, 3)) # We are considering only one particle.
                 phi_t[0] = np.array([mag2flux(mag_model) * flux_to_count, num_rows/2., num_cols/2.])
-                p_t = np.zeros((Nsample, 3)) # Momentum initially set to zero.
 
                 #---- *Time* evolution where step sizes are adjusted by flux.
                 # Compute intial time steps
                 dt_f =  dt_f_coeff[j] * phi_t[0, 0] # Fraction of previous flux
                 dt_xy = dt_xy_coeff[j]/phi_t[0, 0] # Inverse of previous flux
                 dt = np.array([dt_f, dt_xy, dt_xy])
+
                 # Compute the first leap frog step t = 1/2
                 i = 0 
-                p_t[i, :] = (1-alphas[j]) * np.array([-mag2flux(25.)*flux_to_count, 0, 0]) - dt * dVdq(phi_t[i, :]) / 2. # We assume unit covariance momentum matrix.
-
                 for i in range(1, Nsample):
-                    # Update position
-                    q_tmp = phi_t[i-1] + dt * p_t[i-1]
-                    phi_t[i] = q_tmp            
-                    dr = np.sqrt((q_tmp[1] - num_rows/2.)**2 + (q_tmp[2] - num_rows/2.)**2)
-                    if (q_tmp[0] < fmin):# or dr > 1.:
+                    grad = dVdq(phi_t[i-1])
+                    q_tmp = phi_t[i-1] - dt * grad 
+                    if q_tmp[0] < fmin:
                         break
+                    phi_t[i] = q_tmp
 
                     # Compute new step size
                     dt_f = dt_f_coeff[j] * phi_t[i, 0] # Fraction of previous flux
                     dt_xy = dt_xy_coeff[j]/phi_t[i, 0] # Inverse of previous flux
                     dt = np.array([dt_f, dt_xy, dt_xy])
-
-                    # Update momentum to next half step t = i + 0.5
-                    p_t[i] = (1.-alphas[j]) * p_t[i-1] - dt * dVdq(phi_t[i])
 
                 #--- plot current trajectory
                 # xy 
@@ -152,8 +143,6 @@ for j, mag_B in enumerate([23., 25., 27.]):
                 dr = np.sqrt((phi_t[:i, 1]-num_rows/2.)**2 + (phi_t[:i, 2]-num_cols/2.)**2)
                 ax_list[1].plot(flux2mag(phi_t[:i, 0] / flux_to_count), dr, lw=1, c="black", alpha=0.2)
 
-
-
             # xy
             ax_list[0].axis("equal")    
             ax_list[0].set_xlim([num_rows/2.-1., num_rows/2.+1.])
@@ -161,10 +150,9 @@ for j, mag_B in enumerate([23., 25., 27.]):
 
             # xm and ym
             ax_list[1].set_ylim([0, 1.])
-        #     ax_list[1].set_xlim([mag_model-1, flux2mag(fmin / flux_to_count)])
 
             plt.savefig(dir_figures+"one-star-in-mag%d-background-model-mag%d-many-trajectory.png" % (mag_B, mag_model), dpi=200, bbox_inches="tight")
-            plt.show()
+            # plt.show()
             plt.close()
 
 
