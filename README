@@ -76,6 +76,12 @@ Mode inference with various initial problem
 - Products: ./figures/one-star-mode-inference/many/
 	- one-star-modal-inference-mB**-mT**-mM**-dx**-many-trajectory.png: 
 
+Flux inference with position fixed for a single star
+- Notes: Generate an image with a single star of known magnitude. Propose a star at the spot and see how the potential varies as a function of magnitude.
+- Script used: one-star-mag-mode-inference-xy-fixed.py
+- Products: 
+	./figures/one-star-mag-mode-inference-mB%d-mT%d.png
+
 /---- One star inference problem
 General strategy:
 - 48 x 48 image
