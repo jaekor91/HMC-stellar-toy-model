@@ -64,20 +64,40 @@ General strategy:
 
 One particle history with various initial magnitudes
 - Notes: Follow the trajectory of a single particle including dt_x and so on. The goal is tune the parameters so that the particle ends up at the bottom of the proper well. mB, mT, and mM correspond to background, truth and intial model magnitude. dx is how far the particle is placed away from the true location. 
-- Script used: one-star-modal-inference-single-history.py
-- Range of values used: mB == 23., mT = [15, 16, ..., 22], mM = [21], dx = [0, 1, 2, 3, 4, 5]
-- Products: ./figures/one-star-mode-inference/
+- Script used: one-star-mode-inference-single-history.py
+- Range of values used: mB == 23., mT = [15, 16, ..., 22], mM = [21.5], dx = [0, 1, 2, 3, 4, 5]
+- Products: ./figures/one-star-mode-inference/single/
 	- one-star-modal-inference-mB**-mT**-mM**-dx**-single-history.png: 
 
+Mode inference with various initial problem
+- Notes: Perform mode inference for a single star with one model star.
+- Script used: one-star-mode-inference-many-trajectory.py
+- Range of values used: mB == 23., mT = [15, 16, ..., 22], mM = [21.5], dx = [0, 1, 2, 3, 4, 5]
+- Products: ./figures/one-star-mode-inference/many/
+	- one-star-modal-inference-mB**-mT**-mM**-dx**-many-trajectory.png: 
 
 /---- One star inference problem
 General strategy:
 - 48 x 48 image
-- Place a star of a particular magnitude at 0-10 pixels away from the center and find the mode using strategy above (and eliminate particles if don't fit!)
-- After mode has been found (how to assess this), starts performing HMC. Sample 10,000 points Construct a histogram. Show xm and xy scatter plots and histograms for first few. Plot mode and average; are they consistent with what you expect to see?
-- Repeat for 1000 times for each choice of magnitude. Compile all histograms together (with a thin line for each).
+- Assume that a mode has already been found. Place the star where the true position is supposed to be.
+- Starts performing HMC. 
+- For single inference:
+	- Sample 10,000 points. Construct a scatter plot for xy and xm. Make histogram of x, y, m, and r. Plot average of the *distribution* on the histogram. Compute std.
+		- Average here would be the estiamte.
+		- std. is a statement of error.
+- For many inference:
+	- Repeat single inference for 10,000 times, each time calculating average and std. of the distribution.
+	- Make histograms of averages.
+- Repeat above for various true magnitudes.
+(*Come back to below questions later*)
 - What can you say about SN as function of magnitude? What is the property of average as the estimator? What is the variance of the average estimator?
 - How does the inference change as a function of background? PSF size?
+
+Full Bayesian inference of a single star problem. Single inferenece.
+- Notes: The set up is the same as the mode inference problem except now we place the model star where it's supposed to be in x, y, and f. As described in the general strategy above. For now, we study mB = 23., mT=[15, 16, ..., 21.], mM = [21.5], dx = [0] cases.
+- Script used: one-star-inference-single.py
+- Products: ./figures/one-star-inference/single/
+	- one-star-inference-single-mB%d-mT%d-mM%d-dx%d.png
 
 /---- Exploring the typical set geometry of two stars
 Study problems of non-identifiability here.
