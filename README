@@ -65,7 +65,7 @@ General strategy:
 One particle history with various initial magnitudes
 - Notes: Follow the trajectory of a single particle including dt_x and so on. The goal is tune the parameters so that the particle ends up at the bottom of the proper well. mB, mT, and mM correspond to background, truth and intial model magnitude. dx is how far the particle is placed away from the true location. 
 - Script used: one-star-modal-inference-single-history.py
-- Range of values used: mB == 27., mT = [15, 16, ..., 26], mM = [20, 25], dx = [0, 1, 2, 3, 4, 5]
+- Range of values used: mB == 23., mT = [15, 16, ..., 22], mM = [21], dx = [0, 1, 2, 3, 4, 5]
 - Products: ./figures/one-star-mode-inference/
 	- one-star-modal-inference-mB**-mT**-mM**-dx**-single-history.png: 
 
