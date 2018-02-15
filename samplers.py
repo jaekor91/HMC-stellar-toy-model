@@ -41,7 +41,7 @@ class lightsource_gym(object):
 
         return
 
-    def gen_mock_data(self, q_true=None):
+    def gen_mock_data(self, q_true=None, return_data = False):
         """
         Given the properties of mock q_true (Nobjs, 3) with f, x, y for each, 
         generate a mock data image. The following conditions must be met.
@@ -50,24 +50,28 @@ class lightsource_gym(object):
         Gaussian PSF is assumed with the width specified by PSF_FWHM_pix.
         """
         # Generate an image with background.
-        self.D = np.ones((self.num_rows, self.num_cols), dtype=float) * self.B_count
+        data = np.ones((self.num_rows, self.num_cols), dtype=float) * self.B_count
 
         # Add one star at a time.
         for i in xrange(q_true.shape[0]):
             f, x, y = q_true[i]
-            self.D += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM = self.PSF_FWHM_pix)
+            data += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM = self.PSF_FWHM_pix)
 
         # Poission realization D of the underlying truth D0
-        self.D = poisson_realization(self.D)
+        data = poisson_realization(data)
 
-        return
+        if return_data:
+            return data
+        else:
+            self.D = data
 
 
-    def dVdq_single(self, f, x, y, model_data, f_only=True):
+    def dVdq_single(self, q_single, model_data, f_only=True):
         """
         Return the gradient of a single object based on model data where an object with f, x, y is to be added. 
         If f_only is True, then return only f gradient. If False, return xy gradients.
         """
+        f, x, y = q_single
         Lambda = model_data + f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
 
         # Variable to be recycled
@@ -88,13 +92,13 @@ class lightsource_gym(object):
             grad_y = -np.sum(rho * (mv - y + 0.5) * PSF) * f / var
             return grad_x, grad_y
 
-    def E_single(q_single, p_single, model_data):
+    def E_single(self, q_single, p_single, model_data):
         """
         Energy of a single particle given q_singe = [f, x, y] and its corresponding momenta.
         """
         f0, x0, y0 = q_single
         Lambda = model_data + f0 * gauss_PSF(self.num_rows, self.num_cols, x0, y0, FWHM=self.PSF_FWHM_pix)
-        return -np.sum(self.D * np.log(Lambda) - Lambda) + np.dot(p, p) / 2.
+        return -np.sum(self.D * np.log(Lambda) - Lambda) + np.dot(p_single, p_single) / 2.
     
 
 
@@ -110,9 +114,9 @@ class lightsource_gym(object):
         For each parameter, fixing every other parameter, do the following search
             Coarse finding:
             Perform Niter_per_trial HMC iterations. Compute the acceptance rate.
-            Until acceptance rate becomes 1, either increase or decrease the step size by a factor of 10.
+            Until acceptance rate becomes 1, either increase or decrease the step size by a factor of 2. 
 
-            Fine finding:
+            Fine finding (NOT IMPLEMENTED):
             Once the acceptance has become equal to 1, increase the step size by a factor 2.
             Compute the acceptance rate again, and if it falls below 1, then the next step size to try is
             the mid-point of the current and the previous step size. Continue with the "bi-section search".
@@ -142,56 +146,78 @@ class lightsource_gym(object):
         #---- Find the optimal step size for each parameter.
         for l in xrange(self.Nobjs):
             #---- Initialize step sizes
-            f0, x0, y0 = q_model_0[i]
+            f0, x0, y0 = q_model_0[l]
             dt_xy = dt_xy_coeff / f0
             dt_f = dt_f_coeff * f0
 
             #---- Set up grad functions for the current object's parameters
-            model_data = self.gen_mock_data(q_model_0) # Based on the initial seed.
+            model_data = self.gen_mock_data(q_model_0, return_data=True) # Based on the initial seed.       
             model_data -= f0 * gauss_PSF(self.num_rows, self.num_cols, x0, y0, FWHM=self.PSF_FWHM_pix) # Subtract the object of interest.
 
-            #---- Flux step size search ----#
-            #---- Coarse finding
-            A_rate = 0
-            while np.abs(A_rate - 1) < 1e-9: # While the acceptance is not equal to one, keep adjusting the step sizes
-                A_rate = 0 # To be used as a counter
+            for k in range(2): # k = 0 for flux and 1 for xy.
+                if k == 0: # Flux step size adjustment
+                    dt = np.array([dt_f, 0, 0])
+                else:
+                    dt = np.array([0, dt_xy, dt_xy])            
 
-                # Set the initial values.
-                f_initial = f0
-                p_initial = np.random.randn(1)
-                E_previous = self.E_single(np.array([f_initial, x0, y0]), np.array([pf_initial, 0, 0]))
+                #---- Coarse finding
+                A_rate = 0
+                while np.abs(A_rate - 1) > 0.05: # While the acceptance is not equal to one, keep adjusting the step sizes
+                    # To be used as a counter until division at the end
+                    A_rate = 0 
 
-                #---- Looping over iterations
-                for i in xrange(1, Niter_per_trial+1, 1):
-                    #---- Initial
-                    # Resample moementum
-                    p_tmp = np.random.randn(1)
+                    # Set the initial values.
+                    q_tmp = np.array([f0, x0, y0])
 
-                    # Compute E and dE and save
-                    E_initial = self.E(q_tmp, p_tmp)
-                    self.E_chain[m, i, 0] = E_initial
-                    self.dE_chain[m, i, 0] = E_initial - E_previous                    
+                    #---- Looping over iterations
+                    for i in xrange(1, Niter_per_trial+1, 1):
+                        q_initial = q_tmp # Save the initial just in case.
 
-                    #---- Looping over a random number of steps
-                    steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-                    for _ in xrange(steps_sample):
-                        p_tmp, q_tmp = self.leap_frog(p_tmp, q_tmp, self.dt)           
+                        #---- Initial
+                        # Resample moementum
+                        p_tmp = np.random.randn(3)
+                        if k == 0:
+                            p_tmp[1:] = 0
+                        else:
+                            p_tmp[0] = 0
 
-                    # Compute final energy and save.
-                    E_final = self.E(q_tmp, p_tmp)
-                        
-                    # With correct probability, accept or reject the last proposal.
-                    dE = E_final - E_initial
-                    E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
-                    lnu = np.log(np.random.random(1))        
-                    if (dE < 0) or (lnu < -dE): # If accepted. 
-                        A_rate +=1 
-                    else: # Otherwise, proposal rejected.
-                        q_tmp = q_initial
+                        # Compute initial
+                        E_initial = self.E_single(q_tmp, p_tmp, model_data)
 
-                A_rate /= float(Niter_per_trial)
-            
-            self.dt[3*i:3*i+3] = np.array([dt_f, dt_xy, dt_xy])
+                        #---- Looping over a random number of steps
+                        steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+                        p_half = p_tmp - dt * self.dVdq_single(q_tmp, model_data) / 2. # First half step                        
+                        # Leap frogging
+                        for _ in xrange(steps_sample):
+                            q_tmp = q_tmp + dt * p_half 
+                            p_half = p_half - dt * self.dVdq_single(q_tmp, model_data)
+                        p_tmp = p_half + dt * self.dVdq_single(q_tmp, model_data) / 2. # Account for the overshoot in the final run.
+
+                        # Compute final energy and save.
+                        E_final = self.E_single(q_tmp, p_tmp, model_data)
+                            
+                        # With correct probability, accept or reject the last proposal.
+                        dE = E_final - E_initial
+                        E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
+                        lnu = np.log(np.random.random(1))        
+                        if (dE < 0) or (lnu < -dE): # If accepted. 
+                            A_rate +=1 
+                        else: # Otherwise, proposal rejected.
+                            q_tmp = q_initial
+
+                    A_rate /= float(Niter_per_trial)
+
+                    if np.abs(A_rate-1) > 0.05:
+                        dt /= 2.
+                    else:
+                        dt *= 2.
+
+                if k == 0:
+                    dt_f = dt[0]
+                else:
+                    dt_xy = dx[1]
+                
+            self.dt[3*i:3*i+3] = np.array([dx_f, dx_xy, dt_xy])
 
 
 
@@ -241,6 +267,8 @@ class lightsource_gym(object):
             #---- Looping over iterations
             for i in xrange(1, self.Niter+1, 1):
                 #---- Initial
+                q_initial = q_tmp
+
                 # Resample moementum
                 p_tmp = self.p_sample()
 
@@ -251,8 +279,12 @@ class lightsource_gym(object):
 
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+                p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step                                        
                 for _ in xrange(steps_sample):
-                    p_tmp, q_tmp = self.leap_frog(p_tmp, q_tmp, self.dt)           
+                    q_tmp = q_tmp + self.dt * p_half 
+                    p_half = p_half - self.dt * self.dVdq(q_tmp)
+                p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
+
 
                 # Compute final energy and save.
                 E_final = self.E(q_tmp, p_tmp)
