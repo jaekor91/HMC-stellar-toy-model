@@ -103,7 +103,7 @@ class lightsource_gym(object):
 
 
     def HMC_find_best_dt(self, q_model_0, steps_min=10, steps_max=50, Niter_per_trial = 10, Ntrial = 10, \
-        dt_f_coeff=1., dt_xy_coeff=10., default=False, A_target = 0.9):
+        dt_f_coeff=1., dt_xy_coeff=10., default=False, A_target_f = 0.9, A_target_xy=0.5):
         """
         Find the optimal dt through the following heuristic method.
 
@@ -162,9 +162,11 @@ class lightsource_gym(object):
                 if k == 0: # Flux step size adjustment
                     dt = np.array([dt_f, 0, 0])
                     print "flux"
+                    A_target = A_target_f
                 else:
-                    dt = np.array([0, dt_xy, dt_xy])            
+                    dt = np.array([dt_f, dt_xy, dt_xy]) # Note that we perturb flux as well.
                     print "xy"
+                    A_target = A_target_xy
 
                 #---- Coarse finding
                 run = True
@@ -185,8 +187,6 @@ class lightsource_gym(object):
                         p_tmp = np.random.randn(3)
                         if k == 0:
                             p_tmp[1:] = 0
-                        else:
-                            p_tmp[0] = 0
 
                         # Compute initial
                         E_initial = self.E_single(q_tmp, p_tmp, model_data)
@@ -216,7 +216,10 @@ class lightsource_gym(object):
                     print dt, A_rate
 
                     if A_rate < A_target:
-                        dt /= 10.
+                        if k == 0:
+                            dt /= 10.
+                        else:
+                            dt[1:] = dt[1:]/10.
                     else: 
                         run = False
 
@@ -224,6 +227,8 @@ class lightsource_gym(object):
                 counter = 0
                 dt_left = dt # The smallest dt where A_rate is greater than A_target
                 dt_right = 10. * dt # The largest considered dt where A_rate is below A_target
+                if k == 1: 
+                    dt_right[0] = dt_f
 
                 # Keep trying to find the precise A_rate = 0 turning point.
                 while counter < Ntrial:
@@ -231,6 +236,8 @@ class lightsource_gym(object):
 
                     # dt to try
                     dt = (dt_left + dt_right)/2.
+                    if k == 1:
+                        dt[0] = dt_f
 
                     # To be used as a counter until division at the end
                     A_rate = 0 
@@ -247,8 +254,6 @@ class lightsource_gym(object):
                         p_tmp = np.random.randn(3)
                         if k == 0:
                             p_tmp[1:] = 0
-                        else:
-                            p_tmp[0] = 0
 
                         # Compute initial
                         E_initial = self.E_single(q_tmp, p_tmp, model_data)
@@ -277,17 +282,19 @@ class lightsource_gym(object):
                     A_rate /= float(Niter_per_trial)
                     print dt, A_rate
 
-                    if A_rate > A_target: 
+                    if np.abs(A_rate-A_target) < 1e-2:
+                        break
+                    elif A_rate > A_target: 
                         dt_left = dt
                     else: # If acceptance rate is smaller then decrease the maximum limit.
                         dt_right = dt
 
-                dt = (dt_left+dt_right)/2. # Use the smaller one to be conservative.
+                # dt = (dt_left+dt_right)/2. # Use the smaller one to be conservative.
 
                 if k == 0:
                     dt_f = dt[0]
                 else:
-                    dt_xy = dt[1]
+                    dt_xy = dt[1] * 10
 
             # print np.array([dt_f, dt_xy, dt_xy])
             self.dt[3*l:3*l+3] = np.array([dt_f, dt_xy, dt_xy])
