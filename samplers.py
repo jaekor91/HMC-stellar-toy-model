@@ -116,7 +116,7 @@ class lightsource_gym(object):
             Perform Niter_per_trial HMC iterations. Compute the acceptance rate.
             Until acceptance rate becomes 1, either increase or decrease the step size by a factor of 2. 
 
-            Fine finding (NOT IMPLEMENTED):
+            Fine finding:
             Once the acceptance has become equal to 1, increase the step size by a factor 2.
             Compute the acceptance rate again, and if it falls below 1, then the next step size to try is
             the mid-point of the current and the previous step size. Continue with the "bi-section search".
@@ -162,7 +162,8 @@ class lightsource_gym(object):
 
                 #---- Coarse finding
                 A_rate = 0
-                while np.abs(A_rate - 1) > 0.05: # While the acceptance is not equal to one, keep adjusting the step sizes
+                # While the acceptance is not equal to one, keep adjusting the step size.                
+                while (np.abs(A_rate - 1) > 1e-3):
                     # To be used as a counter until division at the end
                     A_rate = 0 
 
@@ -207,7 +208,7 @@ class lightsource_gym(object):
 
                     A_rate /= float(Niter_per_trial)
 
-                    if np.abs(A_rate-1) > 0.05:
+                    if np.abs(A_rate-1) > 1e-3:
                         dt /= 2.
                     else:
                         dt *= 2.
@@ -215,9 +216,10 @@ class lightsource_gym(object):
                 if k == 0:
                     dt_f = dt[0]
                 else:
-                    dt_xy = dx[1]
-                
-            self.dt[3*i:3*i+3] = np.array([dx_f, dx_xy, dt_xy])
+                    dt_xy = dt[1]
+            
+            # print np.array([dt_f, dt_xy, dt_xy])
+            self.dt[3*l:3*l+3] = np.array([dt_f, dt_xy, dt_xy])
 
 
 
