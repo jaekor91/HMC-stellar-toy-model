@@ -96,9 +96,16 @@ class lightsource_gym(object):
         """
         Energy of a single particle given q_singe = [f, x, y] and its corresponding momenta.
         """
+        return self.V_single(q_single, model_data) + np.dot(p_single, p_single) / 2.
+
+
+    def V_single(self, q_single, model_data):
+        """
+        Energy of a single particle given q_singe = [f, x, y] and its corresponding momenta.
+        """
         f0, x0, y0 = q_single
         Lambda = model_data + f0 * gauss_PSF(self.num_rows, self.num_cols, x0, y0, FWHM=self.PSF_FWHM_pix)
-        return -np.sum(self.D * np.log(Lambda) - Lambda) + np.dot(p_single, p_single) / 2.
+        return -np.sum(self.D * np.log(Lambda) - Lambda)
     
 
 
