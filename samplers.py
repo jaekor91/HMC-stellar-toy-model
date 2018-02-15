@@ -103,13 +103,15 @@ class lightsource_gym(object):
 
 
     def HMC_find_best_dt(self, q_model_0, steps_min=10, steps_max=50, Niter_per_trial = 10, Ntrial = 10, \
-        dt_f_coeff=1e-1, dt_xy_coeff=1., default=False):
+        dt_f_coeff=1., dt_xy_coeff=10., default=False, A_target = 0.9):
         """
         Find the optimal dt through the following heuristic method.
 
         Set the initial step size as follows. For each particle,
         - dt_xy: dt_xy_coeff/f
         - dt_f: dt_f_coeff * f
+
+        Start from large step sizes and reduce them incrementally.
     
         For each parameter, fixing every other parameter, do the following search
             Coarse finding:
@@ -135,6 +137,7 @@ class lightsource_gym(object):
 
         #---- If default parameters asked for.
         if default:
+            # assert False
             for i in xrange(self.Nobjs):
                 #---- Initialize step sizes
                 f0, x0, y0 = q_model_0[i]
@@ -142,6 +145,7 @@ class lightsource_gym(object):
                 dt_f = dt_f_coeff * f0
                 self.dt[3*i:3*i+3] = np.array([dt_f, dt_xy, dt_xy])
             return 
+
 
         #---- Find the optimal step size for each parameter.
         for l in xrange(self.Nobjs):
@@ -157,13 +161,15 @@ class lightsource_gym(object):
             for k in range(2): # k = 0 for flux and 1 for xy.
                 if k == 0: # Flux step size adjustment
                     dt = np.array([dt_f, 0, 0])
+                    print "flux"
                 else:
                     dt = np.array([0, dt_xy, dt_xy])            
+                    print "xy"
 
                 #---- Coarse finding
-                A_rate = 0
+                run = True
                 # While the acceptance is not equal to one, keep adjusting the step size.                
-                while (np.abs(A_rate - 1) > 1e-3):
+                while run:
                     # To be used as a counter until division at the end
                     A_rate = 0 
 
@@ -207,17 +213,82 @@ class lightsource_gym(object):
                             q_tmp = q_initial
 
                     A_rate /= float(Niter_per_trial)
+                    print dt, A_rate
 
-                    if np.abs(A_rate-1) > 1e-3:
-                        dt /= 2.
-                    else:
-                        dt *= 2.
+                    if A_rate < A_target:
+                        dt /= 10.
+                    else: 
+                        run = False
+
+                #---- Fine finding
+                counter = 0
+                dt_left = dt # The smallest dt where A_rate is greater than A_target
+                dt_right = 10. * dt # The largest considered dt where A_rate is below A_target
+
+                # Keep trying to find the precise A_rate = 0 turning point.
+                while counter < Ntrial:
+                    counter += 1
+
+                    # dt to try
+                    dt = (dt_left + dt_right)/2.
+
+                    # To be used as a counter until division at the end
+                    A_rate = 0 
+
+                    # Set the initial values.
+                    q_tmp = np.array([f0, x0, y0])
+
+                    #---- Looping over iterations
+                    for i in xrange(1, Niter_per_trial+1, 1):
+                        q_initial = q_tmp # Save the initial just in case.
+
+                        #---- Initial
+                        # Resample moementum
+                        p_tmp = np.random.randn(3)
+                        if k == 0:
+                            p_tmp[1:] = 0
+                        else:
+                            p_tmp[0] = 0
+
+                        # Compute initial
+                        E_initial = self.E_single(q_tmp, p_tmp, model_data)
+
+                        #---- Looping over a random number of steps
+                        steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+                        p_half = p_tmp - dt * self.dVdq_single(q_tmp, model_data) / 2. # First half step                        
+                        # Leap frogging
+                        for _ in xrange(steps_sample):
+                            q_tmp = q_tmp + dt * p_half 
+                            p_half = p_half - dt * self.dVdq_single(q_tmp, model_data)
+                        p_tmp = p_half + dt * self.dVdq_single(q_tmp, model_data) / 2. # Account for the overshoot in the final run.
+
+                        # Compute final energy and save.
+                        E_final = self.E_single(q_tmp, p_tmp, model_data)
+                            
+                        # With correct probability, accept or reject the last proposal.
+                        dE = E_final - E_initial
+                        E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
+                        lnu = np.log(np.random.random(1))        
+                        if (dE < 0) or (lnu < -dE): # If accepted. 
+                            A_rate +=1 
+                        else: # Otherwise, proposal rejected.
+                            q_tmp = q_initial
+
+                    A_rate /= float(Niter_per_trial)
+                    print dt, A_rate
+
+                    if A_rate > A_target: 
+                        dt_left = dt
+                    else: # If acceptance rate is smaller then decrease the maximum limit.
+                        dt_right = dt
+
+                dt = (dt_left+dt_right)/2. # Use the smaller one to be conservative.
 
                 if k == 0:
                     dt_f = dt[0]
                 else:
                     dt_xy = dt[1]
-            
+
             # print np.array([dt_f, dt_xy, dt_xy])
             self.dt[3*l:3*l+3] = np.array([dt_f, dt_xy, dt_xy])
 
