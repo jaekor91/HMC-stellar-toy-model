@@ -118,7 +118,7 @@ class lightsource_gym(object):
         Lambda = model_data + f0 * gauss_PSF(self.num_rows, self.num_cols, x0, y0, FWHM=self.PSF_FWHM_pix)
         return -np.sum(self.D * np.log(Lambda) - Lambda)
     
-    def find_peaks(self, linear_pix_density=0.2, dr_tol = 0.5, dmag_tol = 0.5, mag_lim = None, Nstep=1000,\
+    def find_peaks(self, linear_pix_density=0.2, dr_tol = 1., dmag_tol = 0.5, mag_lim = None, Nstep=1000,\
         dt_f_coeff=1e-1, dt_xy_coeff=1e-1, no_perturb=False):
         """
         Determine likely positions of stars through a deterministic algorithm but with random jitter.
@@ -145,7 +145,7 @@ class lightsource_gym(object):
             assert False
 
         if mag_lim is None:
-            mag_lim = self.mB - 2.
+            mag_lim = self.mB - 1.5
 
         # Compute flux limit
         f_lim = mag2flux(mag_lim) * self.flux_to_count
@@ -156,8 +156,8 @@ class lightsource_gym(object):
         # print "f_seed: %.2f" % f_seed
 
         # Seed objects. Compute Nobjs and initialize
-        Nobjs_row = int(linear_pix_density * self.num_rows) # Number of objects in row direction
-        Nobjs_col = int(linear_pix_density * self.num_cols) # Number of objects in col direction
+        Nobjs_row = int(linear_pix_density * self.num_rows) - 1 # Number of objects in row direction
+        Nobjs_col = int(linear_pix_density * self.num_cols) - 1 # Number of objects in col direction
         Nobjs_tot = Nobjs_row * Nobjs_col # Total number of objects
         grid_spacing = 1/float(linear_pix_density)
         q_seed = np.zeros((Nobjs_tot, 3), dtype=float)
@@ -213,11 +213,27 @@ class lightsource_gym(object):
         # Return a subset that did not disappear
         q_seed = q_seed[A_seed]
 
-        # Perform reduction operation, eliminating redundant objects.
+        # Perform reduction operation, eliminating redundant objects. This is NOT optimized.
+        q_seed_list_final = []
+        while True:
+            q_ref = q_seed[0]
+            q_seed_list_final.append(q_ref)
+            q_seed = q_seed[1:, :]
 
-        # Trim the object list and return.
+            # Compute distance from ref to all the others
+            dist_sq = (q_seed[:, 1] - q_ref[1])**2 + (q_seed[:, 2] - q_ref[2])**2
+            mag_seed = flux2mag(q_seed[:, 0] / self.flux_to_count)
+            mag_ref = flux2mag(q_ref[0] / self.flux_to_count)
 
-        self.q_seed = q_seed
+            # Sub select those that are more than some tolerance amount away or close but magnitude far away
+            ibool = np.logical_or((dist_sq > dr_tol**2), (np.abs(mag_ref - mag_seed) > dmag_tol))
+            q_seed = q_seed[ibool]
+
+            if q_seed.shape[0] == 0:
+                break
+
+        # Concatenate and save
+        self.q_seed = np.vstack(q_seed_list_final)
 
         return
 
@@ -281,11 +297,11 @@ class lightsource_gym(object):
             for k in range(2): # k = 0 for flux and 1 for xy.
                 if k == 0: # Flux step size adjustment
                     dt = np.array([dt_f, 0, 0])
-                    print "flux"
+                    # print "flux"
                     A_target = A_target_f
                 else:
                     dt = np.array([dt_f, dt_xy, dt_xy]) # Note that we perturb flux as well.
-                    print "xy"
+                    # print "xy"
                     A_target = A_target_xy
 
                 #---- Coarse finding
@@ -333,7 +349,7 @@ class lightsource_gym(object):
                             q_tmp = q_initial
 
                     A_rate /= float(Niter_per_trial)
-                    print dt, A_rate
+                    # print dt, A_rate
 
                     if A_rate < A_target:
                         if k == 0:
@@ -400,7 +416,7 @@ class lightsource_gym(object):
                             q_tmp = q_initial
 
                     A_rate /= float(Niter_per_trial)
-                    print dt, A_rate
+                    # print dt, A_rate
 
                     if np.abs(A_rate-A_target) < 1e-2:
                         break
