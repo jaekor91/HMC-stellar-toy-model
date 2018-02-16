@@ -140,8 +140,8 @@ class lightsource_gym(object):
         f_seed = mag2flux(mag_lim-0.5) * self.flux_to_count
 
         # Seed objects. Compute Nobjs and initialize
-        Nobjs_row = linear_pix_density * self.num_rows # Number of objects in row direction
-        Nobjs_col = linear_pix_density * self.num_cols# Number of objects in col direction
+        Nobjs_row = int(linear_pix_density * self.num_rows) # Number of objects in row direction
+        Nobjs_col = int(linear_pix_density * self.num_cols) # Number of objects in col direction
         Nobjs_tot = Nobjs_row * Nobjs_col # Total number of objects
         grid_spacing = 1/float(linear_pix_density)
         q_seed = np.zeros((Nobjs_tot, 3), dtype=float)
@@ -163,7 +163,7 @@ class lightsource_gym(object):
         # Trim the object list and return.
 
         self.q_seed = q_seed
-        
+
         return
 
 
