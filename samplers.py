@@ -107,6 +107,64 @@ class lightsource_gym(object):
         Lambda = model_data + f0 * gauss_PSF(self.num_rows, self.num_cols, x0, y0, FWHM=self.PSF_FWHM_pix)
         return -np.sum(self.D * np.log(Lambda) - Lambda)
     
+    def find_peaks(self, linear_pix_density=0.2, dr_tol = 0.5, dmag_tol = 0.5, mag_lim = None, Nsteps=1000):
+        """
+        Determine likely positions of stars through a deterministic algorithm but with random jitter.
+
+        Propose a particle at a uniform grid with density determined by the linear pixel density.
+        Apply a small random jitter to each particle. Let the particles role for 1000 steps through
+        gradient descent which terminates either if the potential doesn't improve by 1 percent compared to the previous.
+        Particles excete independent motion (i.e., consider motion of one particle at a time).
+
+        If any two particles are very close (dr < dr_tol) and magnitude very similar (dmag < dmag_tol), then
+        the two particles are replaced by one particle.
+
+        Repeat this process until there are no other particles as such. 
+
+        If magnitude limit is None, then it is automatically set to be equal to 1.5 magnitude brighter 
+        than the background brightness.
+
+        mag_lim can be set by considering how frequent false detection comes about at a particular magnitude.
+        """
+        if self.num_rows is None or self.D is None:
+            print "The image must be specified first."
+            assert False
+
+        if mag_lim is None:
+            mag_lim = self.mB - 1.5
+
+        # Compute flux limit
+        f_lim = mag2flux(mag_lim) * self.flux_to_count
+
+        # Seed flux 
+        f_seed = mag2flux(mag_lim-0.5) * self.flux_to_count
+
+        # Seed objects. Compute Nobjs and initialize
+        Nobjs_row = linear_pix_density * self.num_rows # Number of objects in row direction
+        Nobjs_col = linear_pix_density * self.num_cols# Number of objects in col direction
+        Nobjs_tot = Nobjs_row * Nobjs_col # Total number of objects
+        grid_spacing = 1/float(linear_pix_density)
+        q_seed = np.zeros((Nobjs_tot, 3), dtype=float)
+        A_seed = np.zeros(Nobjs_tot, dtype=bool) # Vector that tells whether an object is considered to have been localized or not.
+        for i in xrange(Nobjs_row): # For each row
+            for j in xrange(Nobjs_col): # For each col
+                idx = i * Nobjs_row + j # obj index
+                x = grid_spacing * (i+0.5 + 0.1 * np.random.randn()) 
+                y = grid_spacing * (j+0.5 + 0.1 * np.random.randn()) 
+                q_seed[idx] = np.array([f_seed, x, y])
+
+        # Perform gradient descent of each object, checking whether an object should be retained or not.
+        # for idx in xrange(Nobjs_tot):
+
+
+
+        # Perform reduction operation, eliminating redundant objects.
+
+        # Trim the object list and return.
+
+        self.q_seed = q_seed
+        
+        return
 
 
     def HMC_find_best_dt(self, q_model_0, steps_min=10, steps_max=50, Niter_per_trial = 10, Ntrial = 10, \
@@ -467,12 +525,12 @@ class lightsource_gym(object):
 
         return p_new, q_new
 
-    def display_data(self, figsize=(5, 5), vmax_percentile = 100):
+    def display_data(self, figsize=(5, 5), vmax_percentile = 100, vmin_percentile=1):
         """
         A light display of the mock data.
         """
         fig, ax = plt.subplots(1, figsize=figsize)
-        ax.imshow(self.D, interpolation="none", vmin=np.min(self.D), vmax=np.percentile(self.D, vmax_percentile), cmap="gray")
+        ax.imshow(self.D, interpolation="none", vmin=np.percentile(self.D, vmin_percentile), vmax=np.percentile(self.D, vmax_percentile), cmap="gray")
         plt.show()
         plt.close()
 
@@ -499,6 +557,10 @@ class lightsource_gym(object):
         B_ADU = 179 # Background in ADU.
         B_count = B_ADU/gain
         flux_to_count = 1./(ADU_to_flux * gain) # Flux to count conversion
+
+        #---- Default mag set up
+        self.mB = 23
+        B_count = mag2flux(self.mB) * flux_to_count
 
         # Size of the image
         num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
