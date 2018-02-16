@@ -525,12 +525,16 @@ class lightsource_gym(object):
 
         return p_new, q_new
 
-    def display_data(self, figsize=(5, 5), vmax_percentile = 100, vmin_percentile=1):
+    def display_data(self, figsize=(5, 5), vmax_percentile = 100, vmin_percentile=1, plot_seed=False, size_seed = 10):
         """
         A light display of the mock data.
         """
         fig, ax = plt.subplots(1, figsize=figsize)
         ax.imshow(self.D, interpolation="none", vmin=np.percentile(self.D, vmin_percentile), vmax=np.percentile(self.D, vmax_percentile), cmap="gray")
+        if plot_seed:
+            x = self.q_seed[:, 1]
+            y = self.q_seed[:, 2]            
+            ax.scatter(x, y, c="red", edgecolor="none", s=size_seed)
         plt.show()
         plt.close()
 
