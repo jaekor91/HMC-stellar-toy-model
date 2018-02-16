@@ -66,10 +66,12 @@ class lightsource_gym(object):
             self.D = data
 
 
-    def dVdq_single(self, q_single, model_data, f_only=True):
+    def dVdq_single(self, q_single, model_data, f_only=True, return_all=False):
         """
         Return the gradient of a single object based on model data where an object with f, x, y is to be added. 
         If f_only is True, then return only f gradient. If False, return xy gradients.
+
+        If all True, then over-ride f_only and return all grads.
         """
         f, x, y = q_single
         Lambda = model_data + f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
@@ -80,7 +82,16 @@ class lightsource_gym(object):
         # Compute f, x, y gradient for each object
         PSF = gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
 
-        if f_only:
+        if return_all:
+            grad_f = -np.sum(rho * PSF) # flux grad
+            lv = np.arange(0, self.num_rows)
+            mv = np.arange(0, self.num_cols)
+            mv, lv = np.meshgrid(lv, mv)
+            var = (self.PSF_FWHM_pix/2.354)**2 
+            grad_x = -np.sum(rho * (lv - x + 0.5) * PSF) * f / var
+            grad_y = -np.sum(rho * (mv - y + 0.5) * PSF) * f / var
+            return grad_f, grad_x, grad_y
+        elif f_only:
             grad_f = -np.sum(rho * PSF) # flux grad       
             return grad_f
         else:
@@ -107,12 +118,13 @@ class lightsource_gym(object):
         Lambda = model_data + f0 * gauss_PSF(self.num_rows, self.num_cols, x0, y0, FWHM=self.PSF_FWHM_pix)
         return -np.sum(self.D * np.log(Lambda) - Lambda)
     
-    def find_peaks(self, linear_pix_density=0.2, dr_tol = 0.5, dmag_tol = 0.5, mag_lim = None, Nsteps=1000):
+    def find_peaks(self, linear_pix_density=0.2, dr_tol = 0.5, dmag_tol = 0.5, mag_lim = None, Nstep=1000,\
+        dt_f_coeff=1e-1, dt_xy_coeff=1e-1, no_perturb=False):
         """
         Determine likely positions of stars through a deterministic algorithm but with random jitter.
 
         Propose a particle at a uniform grid with density determined by the linear pixel density.
-        Apply a small random jitter to each particle. Let the particles role for 1000 steps through
+        Apply a small random jitter to each particle. Let the particles role for Nstep steps through
         gradient descent which terminates either if the potential doesn't improve by 1 percent compared to the previous.
         Particles excete independent motion (i.e., consider motion of one particle at a time).
 
@@ -125,19 +137,23 @@ class lightsource_gym(object):
         than the background brightness.
 
         mag_lim can be set by considering how frequent false detection comes about at a particular magnitude.
+
+        If no_perturb, then do not perform gradient descent.
         """
         if self.num_rows is None or self.D is None:
             print "The image must be specified first."
             assert False
 
         if mag_lim is None:
-            mag_lim = self.mB - 1.5
+            mag_lim = self.mB - 2.
 
         # Compute flux limit
         f_lim = mag2flux(mag_lim) * self.flux_to_count
+        # print "f_lim: %.2f" % f_lim
 
         # Seed flux 
         f_seed = mag2flux(mag_lim-0.5) * self.flux_to_count
+        # print "f_seed: %.2f" % f_seed
 
         # Seed objects. Compute Nobjs and initialize
         Nobjs_row = int(linear_pix_density * self.num_rows) # Number of objects in row direction
@@ -145,7 +161,7 @@ class lightsource_gym(object):
         Nobjs_tot = Nobjs_row * Nobjs_col # Total number of objects
         grid_spacing = 1/float(linear_pix_density)
         q_seed = np.zeros((Nobjs_tot, 3), dtype=float)
-        A_seed = np.zeros(Nobjs_tot, dtype=bool) # Vector that tells whether an object is considered to have been localized or not.
+        A_seed = np.ones(Nobjs_tot, dtype=bool) # Vector that tells whether an object is considered to have been localized or not.
         for i in xrange(Nobjs_row): # For each row
             for j in xrange(Nobjs_col): # For each col
                 idx = i * Nobjs_row + j # obj index
@@ -153,10 +169,49 @@ class lightsource_gym(object):
                 y = grid_spacing * (j+0.5 + 0.1 * np.random.randn()) 
                 q_seed[idx] = np.array([f_seed, x, y])
 
+        # If not perturbation asked, then simply return the seeds. 
+        if no_perturb:
+            self.q_seed = q_seed
+            return
+
+        # Construct model data image. Pure background.
+        model_data = np.ones((self.num_rows, self.num_cols), dtype=float) * self.B_count
+
         # Perform gradient descent of each object, checking whether an object should be retained or not.
-        # for idx in xrange(Nobjs_tot):
+        for idx in xrange(Nobjs_tot):
+            f, x, y = q_seed[idx]
 
+            # Initial potential
+            V_previous = self.V_single([f, x, y], model_data)
 
+            for i in range(Nstep):
+                grad_f, grad_x, grad_y = self.dVdq_single([f, x, y], model_data, return_all=True)
+
+                # Time step size
+                dt_f = f * dt_f_coeff
+                dt_xy = dt_xy_coeff / f
+
+                # Update the params
+                f -= grad_f * dt_f
+                x -= grad_x * dt_xy
+                y -= grad_y * dt_xy
+
+                if (f < f_lim): # If the object is very faint then make it disappear
+                    A_seed[idx] = False
+                    break
+
+                V_current = self.V_single([f, x, y], model_data)
+
+                if np.abs((V_current - V_previous)/V_previous) < 1e-9: # If the relative change is less than 0.1%
+                    break
+
+                V_previous = V_current
+
+            # Set the q_seed with 
+            q_seed[idx] = np.array([f, x, y])
+
+        # Return a subset that did not disappear
+        q_seed = q_seed[A_seed]
 
         # Perform reduction operation, eliminating redundant objects.
 
