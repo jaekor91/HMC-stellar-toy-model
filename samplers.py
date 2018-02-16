@@ -139,6 +139,8 @@ class lightsource_gym(object):
         mag_lim can be set by considering how frequent false detection comes about at a particular magnitude.
 
         If no_perturb, then do not perform gradient descent.
+
+        dr_tol should depend on the flux.
         """
         if self.num_rows is None or self.D is None:
             print "The image must be specified first."
@@ -213,6 +215,12 @@ class lightsource_gym(object):
         # Return a subset that did not disappear
         q_seed = q_seed[A_seed]
 
+        # If there are no seeds, return
+        if q_seed.shape[0] == 0:
+            self.q_seed = q_seed
+            print "No peaks were found."
+            return
+
         # Perform reduction operation, eliminating redundant objects. This is NOT optimized.
         q_seed_list_final = []
         while True:
@@ -238,7 +246,7 @@ class lightsource_gym(object):
         return
 
 
-    def HMC_find_best_dt(self, q_model_0, steps_min=10, steps_max=50, Niter_per_trial = 10, Ntrial = 10, \
+    def HMC_find_best_dt(self, q_model_0=None, steps_min=10, steps_max=50, Niter_per_trial = 10, Ntrial = 10, \
         dt_f_coeff=1., dt_xy_coeff=10., default=False, A_target_f = 0.9, A_target_xy=0.5):
         """
         Find the optimal dt through the following heuristic method.
@@ -264,6 +272,10 @@ class lightsource_gym(object):
 
         If default False, then use the intial step size.
         """
+        if q_model_0 is None: 
+            print "Use found seeds for inference."
+            q_model_0 = self.q_seed
+
         #--- Number of objects
         self.Nobjs = q_model_0.shape[0]
         self.d = self.Nobjs * 3
@@ -437,7 +449,7 @@ class lightsource_gym(object):
 
 
 
-    def HMC_random(self, q_model_0, Nchain, Niter, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50):
+    def HMC_random(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50):
         """
         Perform Bayesian inference with HMC given an initial model q_model_0 (Nobjs, 3). 
         No change in dimension is implemented. 
@@ -453,9 +465,12 @@ class lightsource_gym(object):
         self.Nwarmup = Nwarmup
 
         #---- Number of objects should have been already determined via optimal step search
-        assert self.d is  not None
+        assert self.d is not None
         
-        #---- Reshape the initial point        
+        #---- Reshape the initial point
+        if q_model_0 is None: 
+            print "Use found seeds for inference."
+            q_model_0 = self.q_seed
         q_model_0 =  q_model_0.reshape((self.d,))# Flatten 
 
         #---- Allocate storage for variables being inferred.
