@@ -82,39 +82,35 @@ Flux inference with position fixed for a single star
 - Products: 
 	./figures/one-star-mag-mode-inference-mB%d-mT%d.png
 
+
+
 /---- One star inference problem
 General strategy:
-- 48 x 48 image
-- Assume that a mode has already been found. Place the star where the true position is supposed to be.
-- Starts performing HMC. 
-- For single inference:
-	- Sample 10,000 points. Construct a scatter plot for xy and xm. Make histogram of x, y, m, and r. Plot average of the *distribution* on the histogram. Compute std.
-		- Average here would be the estiamte.
-		- std. is a statement of error.
-- For many inference:
-	- Repeat single inference for 10,000 times, each time calculating average and std. of the distribution.
-	- Make histograms of averages.
-- Repeat above for various true magnitudes.
-(*Come back to below questions later*)
-- What can you say about SN as function of magnitude? What is the property of average as the estimator? What is the variance of the average estimator?
-- How does the inference change as a function of background? PSF size?
+- 32 by 32 image
+- Use mode finding algorithm.
+	- Faster gradient descent scheme? Second order least squre minimization?
+	- How good/bad is modal inference? mT = 15, 16, 17, .. , 21, 21.5, 21.6, 21.7, 21.75
+	- Repeat 1000 times and look at the distributioon of modal inference.
+- Find best time steps
+	- Use interpolation function?
+		- For each magnitude star [15, 16, ..., 21] search for best sizes for dt_f and dt_xy. Find interpolation function.
+		- Repeat 1000 times to see if the best time step is stable....
+- Performa inference. 
+	- How good is the average as an infereential quantity?
 
-Full Bayesian inference of a single star problem. Single inferenece.
-- Notes: The set up is the same as the mode inference problem except now we place the model star where it's supposed to be in x, y, and f. As described in the general strategy above. For now, we study mB = 23., mT=[15, 16, ..., 21.], mM = [21.5], dx = [0] cases.
-- Script used: one-star-inference-single.py
-- Products: ./figures/one-star-inference/single/
-	- one-star-inference-single-mB%d-mT%d-mM%d-dx%d.png
+
+/---- Two star inference problem
+- 48 by 48 image
+- For each separation r = 0.25, 0.5, 0.75, 1., 1.5, 2., 3., 4.
+- Mode seeking. How close do objects have to be before mode finding fails? How good is mode as a quantity?
+- Repeat the above step
+
 
 /---- Exploring the typical set geometry of two stars
 Study problems of non-identifiability here.
 Create informative diagonostic plots.
 Store gradients.
 
-/---- Two star *mode* inference problem
-General strategy:
-- 48 x 48 image
-- Various combintaion of magnitude pairs (lower traingle)
-- With and without repulsive potentials
 
 
 /---- Repulsive potentials
