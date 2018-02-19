@@ -466,6 +466,9 @@ class lightsource_gym(object):
 
         #---- Number of objects should have been already determined via optimal step search
         assert self.d is not None
+
+        #---- Min flux
+        self.f_lim = mag2flux(self.mB - 1.5) * self.flux_to_count 
         
         #---- Reshape the initial point
         if q_model_0 is None: 
@@ -510,12 +513,30 @@ class lightsource_gym(object):
 
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-                p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step                                        
-                for _ in xrange(steps_sample):
-                    q_tmp = q_tmp + self.dt * p_half 
-                    p_half = p_half - self.dt * self.dVdq(q_tmp)
-                p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
+                p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step
+                for _ in xrange(steps_sample): 
+                    flip = False
+                    q_tmp = q_tmp + self.dt * p_half
+                    # We only consider constraint in the flux direction.
+                    # If any of the flux is below the limiting point, then change the momentum direction
+                    for l in xrange(self.Nobjs):
+                        if q_tmp[3 * l] < self.f_lim:
+                            iflip[3 * l] = True
+                            flip = True
+                    if flip: # If fix due to constraint.
+                        p_half_tmp = -p_half[iflip] # Flip the direction.
+                        p_half = p_half - self.dt * self.dVdq(q_tmp) # Update as usual
+                        p_half[iflip] = p_half_tmp # Make correction
+                    else:
+                        p_half = p_half - self.dt * self.dVdq(q_tmp) # If no correction, then regular update.
 
+                # Final half step correction
+                if flip:
+                    p_half_tmp = p_half[iflip] # Save 
+                    p_half = p_half + self.dt * self.dVdq(q_tmp) / 2.# Update as usual 
+                    p_half[iflip] = p_half_tmp # Make correction                    
+                else:
+                    p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
 
                 # Compute final energy and save.
                 E_final = self.E(q_tmp, p_tmp)
@@ -593,6 +614,11 @@ class lightsource_gym(object):
         """
         Kinetic plus potential energy    
         """
+        Nobjs = q.size // 3 # Assume that q is flat.s
+        for l in xrange(Nobjs):
+            if q[3 * l] < self.f_lim:
+                return np.infty
+
         return self.V(q) + self.K(p)
 
     def p_sample(self):
