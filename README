@@ -123,6 +123,8 @@ Post-hoc ordering of samples:
 A series of deterministic binary reduction mapping as a post-hoc. Recovers convergence statistics
 
 /---- For later considerations
+Second order gradient descent for mode finding: http://www.cs.cornell.edu/courses/cs4780/2015fa/web/lecturenotes/lecturenote07.html
+	- Use damping
 Use HD5
 Look at the simulations to see if you can gain any insight!
 	https://chi-feng.github.io/mcmc-demo/app.html#HamiltonianMC,banana
