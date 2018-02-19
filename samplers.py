@@ -471,8 +471,8 @@ class lightsource_gym(object):
         assert self.d is not None
 
         #---- Min flux
-        if self.f_lim_default:
-            self.f_lim = mag2flux(self.mB - 1.5) * self.flux_to_count 
+        if f_lim_default:
+            self.f_lim = mag2flux(self.mB - 1.) * self.flux_to_count
         else:   
             self.f_lim = f_lim 
         
