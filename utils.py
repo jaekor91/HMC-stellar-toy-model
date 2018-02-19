@@ -633,3 +633,16 @@ def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
     plt.register_cmap(cmap=newcmap)
 
     return newcmap
+
+
+def plot_range(x, factor = 1.1):
+    """
+    Given quantity x, return a convenient plot range choice.
+    """
+    x_min, x_max = np.min(x), np.max(x)
+    x_range = (x_max - x_min) * factor
+    x_center = (x_min + x_max) / 2.
+    x_max = x_center + x_range /2.
+    x_min = x_center - x_range /2.    
+    
+    return x_min, x_max
