@@ -82,21 +82,23 @@ Flux inference with position fixed for a single star
 - Products: 
 	./figures/one-star-mag-mode-inference-mB%d-mT%d.png
 
-
-
-/---- One star inference problem
-General strategy:
-- 32 by 32 image
 - Use mode finding algorithm.
 	- Faster gradient descent scheme? Second order least squre minimization?
 	- How good/bad is modal inference? mT = 15, 16, 17, .. , 21, 21.5, 21.6, 21.7, 21.75
 	- Repeat 1000 times and look at the distributioon of modal inference.
+
+/---- One star inference problem
+General strategy:
+- 32 by 32 image
+- Use truth point as the intial point
 - Find best time steps
-	- Use interpolation function?
+	- Use interpolation function: 
 		- For each magnitude star [15, 16, ..., 21] search for best sizes for dt_f and dt_xy. Find interpolation function.
 		- Repeat 1000 times to see if the best time step is stable....
-- Performa inference. 
-	- How good is the average as an infereential quantity?
+- Perform inference
+	- For each magnitude plot x, f scatter plot and their histograms (to x histogram and y histogram).
+- Expectation as the estimator
+	- Repeat for 1000 times how stable the estimator is. For each magnitude display estimator scatter plot and their histograms.
 
 
 /---- Two star inference problem
