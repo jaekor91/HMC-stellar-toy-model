@@ -449,13 +449,16 @@ class lightsource_gym(object):
 
 
 
-    def HMC_random(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50):
+    def HMC_random(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
+        f_lim = 0., f_lim_default = False):
         """
         Perform Bayesian inference with HMC given an initial model q_model_0 (Nobjs, 3). 
         No change in dimension is implemented. 
 
         Random trajectory length is used with steps ~ [steps_min, steps_max]
         dt_xy_coeff and dt_f_coeff are parameters.
+
+        f_lim_default: If set True, then set f_lim to *default* value instead of the user provided f_lim value.
         """
         #---- Set inference variables as provided by the user. 
         assert Nchain == 1 # Currently we do not support any other.
@@ -468,7 +471,10 @@ class lightsource_gym(object):
         assert self.d is not None
 
         #---- Min flux
-        self.f_lim = mag2flux(self.mB - 1.5) * self.flux_to_count 
+        if self.f_lim_default:
+            self.f_lim = mag2flux(self.mB - 1.5) * self.flux_to_count 
+        else:   
+            self.f_lim = f_lim 
         
         #---- Reshape the initial point
         if q_model_0 is None: 
@@ -514,6 +520,7 @@ class lightsource_gym(object):
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
                 p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step
+                iflip = np.zeros(self.d, dtype=bool) # Flip array.                
                 for _ in xrange(steps_sample): 
                     flip = False
                     q_tmp = q_tmp + self.dt * p_half
