@@ -95,10 +95,21 @@ General strategy:
 	- Use interpolation function: 
 		- For each magnitude star [15, 16, ..., 21] search for best sizes for dt_f and dt_xy. Find interpolation function.
 		- Repeat 1000 times to see if the best time step is stable....
+- mT = 15, 16, 17, .. , 21, 21.5, 21.6, 21.7, 21.75
 - Perform inference
 	- For each magnitude plot x, f scatter plot and their histograms (to x histogram and y histogram).
 - Expectation as the estimator
 	- Repeat for 1000 times how stable the estimator is. For each magnitude display estimator scatter plot and their histograms.
+	- How does the lower limit affect the inference?
+
+Single inference:
+- Notes: Perform single case inference as noted above. 
+	mT = 15, 16, 17, .. , 21, 21.5, 21.6, 21.7
+	Flux constraint: 0, mB - 1, mB - 1.5
+- Script: one-star-inference-single.py
+- Products: 
+	./figures/one-star-inference/single/one-star-inference-single-mB%d-mT%.1f-mlim%.1f.png
+
 
 
 /---- Two star inference problem
@@ -147,3 +158,17 @@ Admissibility -- All of stats?
 When a new object is proposed, accept it only if it meets certain criteria
 
 Requite speed to scale to LSST ( 3 * 10**12 / (3600 * 24 * 365 * 36 * 1000))
+
+
+/---- Questions to discuss
+- How do I test my algorithm for reducing LSST? Where to look for the requisite? What other applications should I look at?
+- How fast should it be?
+- Peak finding problem. Second order. Too close stars are going to be impossible...
+- Choosing the best step size.
+- Step through the algorithm: Peak finding. Best step size determination. HMC. 
+- Constraints: If just non-zero, then a particle can wander away quite a bit. Use a spaital prior for this? But in a realistic situation a star wouldn't wander away... Another strategy is to use mB-1 as the lowest limit. But this would introduce bias if multi-band inference in performed? No, I think not becuase in a multi-band imaging survey, I think at least one dimension will be well constrained.
+- Choices of limits. Reasonable?
+	- Confidently inferrable limit. mB - 1.5
+	- Start mB - 2
+	- Constraint mB - 1
+- Repulsive potential
