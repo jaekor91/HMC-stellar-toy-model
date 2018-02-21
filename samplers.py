@@ -147,7 +147,7 @@ class lightsource_gym(object):
             assert False
 
         if mag_lim is None:
-            mag_lim = self.mB - 1.5
+            mag_lim = self.mB - 1.
 
         # Compute flux limit
         f_lim = mag2flux(mag_lim) * self.flux_to_count
@@ -564,6 +564,120 @@ class lightsource_gym(object):
         return 
 
 
+    def RHMC_random(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
+        f_lim = 0., f_lim_default = False):
+        """
+        Perform Bayesian inference with RHMC given an initial model q_model_0 (Nobjs, 3). 
+        No change in dimension is implemented. 
+
+        Random trajectory length is used with steps ~ [steps_min, steps_max].
+
+        f_lim_default: If set True, then set f_lim to *default* value instead of the user provided f_lim value.
+        """
+        #---- Set inference variables as provided by the user. 
+        assert Nchain == 1 # Currently we do not support any other.
+        self.Nchain = Nchain
+        self.Niter = Niter
+        self.thin_rate = thin_rate
+        self.Nwarmup = Nwarmup
+
+        #---- Number of objects should have been already determined via optimal step search
+        assert self.d is not None
+
+        #---- Min flux
+        if f_lim_default:
+            self.f_lim = mag2flux(self.mB - 1.) * self.flux_to_count
+        else:   
+            self.f_lim = f_lim 
+        
+        #---- Reshape the initial point
+        if q_model_0 is None: 
+            print "Use found seeds for inference."
+            q_model_0 = self.q_seed
+        q_model_0 =  q_model_0.reshape((self.d,))# Flatten 
+
+        #---- Allocate storage for variables being inferred.
+        # The zeroth slot is reserved for the initial. The first iteration takes 0 --> 1.
+        self.q_chain = np.zeros((self.Nchain, self.Niter+1, self.d))
+        # self.p_chain = np.zeros((self.Nchain, self.Niter+1, self.d))
+        # self.V_chain = np.zeros((self.Nchain, self.Niter+1, 1))
+        self.E_chain = np.zeros((self.Nchain, self.Niter+1, 1))
+        self.dE_chain = np.zeros((self.Nchain, self.Niter+1, 1))
+        self.A_chain = np.zeros((self.Nchain, self.Niter, 1)) # Acceptance rate chain. There are only Niter transitions.
+        # Samples are taken from [1, Niter + 1]
+
+        #---- Looping over chains
+        for m in xrange(self.Nchain):
+            # Set the initial values.
+            q_initial = q_model_0
+            p_initial = self.p_sample()            
+            self.q_chain[m, 0, :] = q_model_0
+            # self.p_chain[m, 0, :] = self.p_sample()[0]
+            # self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
+            self.E_chain[m, 0, 0] = self.E_RHMC(q_initial, p_initial)
+            self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
+            E_previous = self.E_chain[m, 0, 0]
+            q_tmp = q_initial
+            #---- Looping over iterations
+            for i in xrange(1, self.Niter+1, 1):
+                #---- Initial
+                q_initial = q_tmp
+
+                # Resample moementum
+                p_tmp = self.p_sample()
+
+                # Compute E and dE and save
+                E_initial = self.E(q_tmp, p_tmp)
+                self.E_chain[m, i, 0] = E_initial
+                self.dE_chain[m, i, 0] = E_initial - E_previous                    
+
+                #---- Looping over a random number of steps
+                steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+                p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step
+                iflip = np.zeros(self.d, dtype=bool) # Flip array.                
+                for _ in xrange(steps_sample): 
+                    flip = False
+                    q_tmp = q_tmp + self.dt * p_half
+                    # We only consider constraint in the flux direction.
+                    # If any of the flux is below the limiting point, then change the momentum direction
+                    for l in xrange(self.Nobjs):
+                        if q_tmp[3 * l] < self.f_lim:
+                            iflip[3 * l] = True
+                            flip = True
+                    if flip: # If fix due to constraint.
+                        p_half_tmp = -p_half[iflip] # Flip the direction.
+                        p_half = p_half - self.dt * self.dVdq(q_tmp) # Update as usual
+                        p_half[iflip] = p_half_tmp # Make correction
+                    else:
+                        p_half = p_half - self.dt * self.dVdq(q_tmp) # If no correction, then regular update.
+
+                # Final half step correction
+                if flip:
+                    p_half_tmp = p_half[iflip] # Save 
+                    p_half = p_half + self.dt * self.dVdq(q_tmp) / 2.# Update as usual 
+                    p_half[iflip] = p_half_tmp # Make correction                    
+                else:
+                    p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
+
+                # Compute final energy and save.
+                E_final = self.E(q_tmp, p_tmp)
+                    
+                # With correct probability, accept or reject the last proposal.
+                dE = E_final - E_initial
+                E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
+                lnu = np.log(np.random.random(1))        
+                if (dE < 0) or (lnu < -dE): # If accepted.
+                    self.A_chain[m, i-1, 0] = 1
+                    self.q_chain[m, i, :] = q_tmp # save the new point
+                else: # Otherwise, proposal rejected.
+                    self.q_chain[m, i, :] = q_initial # save the old point
+                    q_tmp = q_initial
+
+            print "Chain %d Acceptance rate: %.2f%%" % (m, np.sum(self.A_chain[m, :] * 100)/float(self.Niter))
+
+        return 
+
+
     def dVdq(self, objs_flat):
         """
         Gradient of Poisson pontential above.    
@@ -627,6 +741,17 @@ class lightsource_gym(object):
                 return np.infty
 
         return self.V(q) + self.K(p)
+
+    def E_RHMC(self, q, p):
+        """
+        Kinetic plus potential energy    
+        """
+        Nobjs = q.size // 3 # Assume that q is flat.s
+        for l in xrange(Nobjs):
+            if q[3 * l] < self.f_lim:
+                return np.infty
+
+        return self.V(q) + self.K_RHMC(p)        
 
     def p_sample(self):
         """
