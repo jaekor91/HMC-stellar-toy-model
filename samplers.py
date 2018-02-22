@@ -596,6 +596,7 @@ class lightsource_gym(object):
         # Compute grads 
         for k in range(self.Nobjs):
             f, x, y = q_tmp[3*k:3*k+3]
+            
             # f
             PSF = gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
             PSF_sq = PSF**2                    
@@ -731,18 +732,14 @@ class lightsource_gym(object):
                         E_tmp = E
                     for z in xrange(steps_sample):
                         dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)                        
-                        # if E == np.infty: 
-                        #     print "Divergence encountered at (%d ,%d)" % (i, z)
-                        #     break
+                        if E == np.infty: 
+                            print "Divergence encountered at (%d ,%d)" % (i, z)
+                            break
                         if debug:
                             #---- Efficient computation of grads and energies
                             print "/- %d" % z                                         
                             print "q", q_tmp
                             print "dqdt", dqdt
-                            print "p", p_tmp
-                            print "dpdt", dpdt
-                            print "E and dE", E, E-E_tmp
-                            print "\n"
                             E_tmp = E
                         flip = False
                         q_tmp += dt_RHMC * dqdt
@@ -759,7 +756,13 @@ class lightsource_gym(object):
                         else:
                             dt_tmp = dt_RHMC
 
-                        dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)                                                
+                        dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)
+                        if debug:
+                            print "p", p_tmp
+                            print "dpdt", dpdt
+                            print "E and dE", E, E-E_tmp
+                            print "\n"
+
                         if flip: # If fix due to constraint.
                             p_half_tmp = -p_half[iflip] # Flip the direction.
                             p_half += dt_tmp * dpdt # Update as usual
