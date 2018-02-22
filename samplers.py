@@ -709,7 +709,7 @@ class lightsource_gym(object):
 
         # Set first point
         q_tmp = q_model_0
-        p_tmp = np.zero_like(q_tmp)
+        p_tmp = np.zeros_like(q_tmp)
         #---- Looping over chains
         for m in xrange(self.Nchain):
             #---- Looping over iterations
