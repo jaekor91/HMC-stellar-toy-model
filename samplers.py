@@ -568,6 +568,8 @@ class lightsource_gym(object):
         Given current parameters, return quantities of interest.
         """
         for k in xrange(self.Nobjs):
+            if dVdqq_only:
+                break
             f, x, y = q_tmp[3*k:3*k+3]
             if f < self.f_lim:
                 return np.infty, np.infty, np.infty            
@@ -719,6 +721,12 @@ class lightsource_gym(object):
 
                 # Resample moementum
                 dVdqq = self.RHMC_efficient_computation(q_tmp, p_tmp, debug=False, dVdqq_only=True)
+                # if len(dVdqq) == self.d:
+                #     pass
+                # else:
+                #     print q_tmp
+                #     print dVdqq
+                #     assert False
                 p_tmp = self.p_sample() * np.sqrt(dVdqq)
 
                 #---- Efficient computation of grads and energies.                 
