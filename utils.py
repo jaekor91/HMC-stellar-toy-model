@@ -635,7 +635,7 @@ def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
     return newcmap
 
 
-def plot_range(x, factor = 1.1):
+def plot_range(x, factor = 2.):
     """
     Given quantity x, return a convenient plot range choice.
     """
