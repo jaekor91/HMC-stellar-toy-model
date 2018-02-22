@@ -570,7 +570,7 @@ class lightsource_gym(object):
         for k in xrange(self.Nobjs):
             f, x, y = q_tmp[3*k:3*k+3]
             if f < self.f_lim:
-                return _, _, np.infty            
+                return np.infty, np.infty, np.infty            
 
         # Place holders
         dVdq = np.zeros(self.d)
@@ -727,11 +727,13 @@ class lightsource_gym(object):
                     #---- First half step for momentum
                     p_half = p_tmp + dt_RHMC * dpdt / 2.# 
                     iflip = np.zeros(self.d, dtype=bool) # Flip array.                
-                    E_tmp = E
+                    if debug: 
+                        E_tmp = E
                     for z in xrange(steps_sample):
                         dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)                        
-                        if E == np.infty: 
-                            break
+                        # if E == np.infty: 
+                        #     print "Divergence encountered at (%d ,%d)" % (i, z)
+                        #     break
                         if debug:
                             #---- Efficient computation of grads and energies
                             print "/- %d" % z                                         
@@ -741,9 +743,10 @@ class lightsource_gym(object):
                             print "dpdt", dpdt
                             print "E and dE", E, E-E_tmp
                             print "\n"
-                        E_tmp = E
+                            E_tmp = E
                         flip = False
                         q_tmp += dt_RHMC * dqdt
+
                         # We only consider constraint in the flux direction.
                         # If any of the flux is below the limiting point, then change the momentum direction
                         for l in xrange(self.Nobjs):
@@ -756,6 +759,7 @@ class lightsource_gym(object):
                         else:
                             dt_tmp = dt_RHMC
 
+                        dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)                                                
                         if flip: # If fix due to constraint.
                             p_half_tmp = -p_half[iflip] # Flip the direction.
                             p_half += dt_tmp * dpdt # Update as usual
