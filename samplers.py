@@ -563,7 +563,7 @@ class lightsource_gym(object):
 
         return 
 
-    def RHMC_efficient_computation(q_tmp, p_tmp):
+    def RHMC_efficient_computation(self, q_tmp, p_tmp):
         """
         Given current parameters, return quantities of interest.
         """
@@ -614,12 +614,12 @@ class lightsource_gym(object):
             # x
             dVdx = f * np.sum(rho1 * dPSFdx)
             dVdxx =  f**2 * np.sum(rho2 * dPSFdx_sq) + f * np.sum(rho1 * dPSFdxx)
-            dVdxxx =  - f**3 * np.sum(rho3 * dPSFdx_sq * dPSFdx) + 3 * f**2 * np.sum(rho2 * dPFSdx * dPSFdxx)\
+            dVdxxx =  - f**3 * np.sum(rho3 * dPSFdx_sq * dPSFdx) + 3 * f**2 * np.sum(rho2 * dPSFdx * dPSFdxx)\
                 + f * np.sum(rho1 * dPSFdxxx)  
             # y
             dVdy = f * np.sum(rho1 * dPSFdy)
             dVdyy =  f**2 * np.sum(rho2 * dPSFdy_sq) + f * np.sum(rho1 * dPSFdyy)
-            dVdyyy =  - f**3 * np.sum(rho3 * dPSFdy_sq * dPSFdy) + 3 * f**2 * np.sum(rho2 * dPFSdy * dPSFdyy)\
+            dVdyyy =  - f**3 * np.sum(rho3 * dPSFdy_sq * dPSFdy) + 3 * f**2 * np.sum(rho2 * dPSFdy * dPSFdyy)\
                 + f * np.sum(rho1 * dPSFdyyy)  
 
 
@@ -636,7 +636,7 @@ class lightsource_gym(object):
         # Compute quantities of interest.
         dqdt = p_tmp / dVdqq # inv_cov_p = H^-1                 
         dpdt = dVdqqq * ((1./dVdqq) - dqdt**2) / 2. # dqdt = p_tmp **2 / dVdqq**2
-        E = (p_tmp ** 2) / (2 * dVdqq) + np.product(dVdqq) / 2.
+        E = np.sum((p_tmp ** 2) / dVdqq) / 2. + np.log(np.product(dVdqq)) / 2. # Frist corresponds to the qudractic term and the other determinant.
 
         return dqdt, dpdt, E
 
@@ -695,7 +695,7 @@ class lightsource_gym(object):
                 p_tmp = self.p_sample()
 
                 #---- Efficient computation of grads and energies.                 
-                dqdt, dptdt, E = RHMC_efficient_computation(q_tmp, p_tmp)
+                dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_tmp)
 
                 if i == 0:
                     self.q_chain[m, 0, :] = q_tmp
@@ -717,7 +717,7 @@ class lightsource_gym(object):
                     iflip = np.zeros(self.d, dtype=bool) # Flip array.                
                     for z in xrange(steps_sample):
                         #---- Efficient computation of grads and energies
-                        dqdt, dpdt, E = RHMC_efficient_computation(q_tmp, p_half)
+                        dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)
                         flip = False
                         q_tmp += dt_RHMC * dqdt
                         # We only consider constraint in the flux direction.
@@ -729,16 +729,18 @@ class lightsource_gym(object):
                         # If this is the last step
                         if z == steps_sample-1:
                             dt_tmp = dt_RHMC/2.
+                        else:
+                            dt_tmp = dt_RHMC
 
                         if flip: # If fix due to constraint.
                             p_half_tmp = -p_half[iflip] # Flip the direction.
                             p_half = p_half - dt_tmp * dpdt # Update as usual
                             p_half[iflip] = p_half_tmp # Make correction
                         else:
-                            p_half = p_half - dt_RHMC *  dpdt# If no correction, then regular update.
+                            p_half = p_half - dt_tmp *  dpdt# If no correction, then regular update.
 
                     # Compute and save the final energy
-                    _, _, E_final = RHMC_efficient_computation(q_tmp, p_half)
+                    _, _, E_final = self.RHMC_efficient_computation(q_tmp, p_half)
                         
                     # With correct probability, accept or reject the last proposal.
                     dE = E_final - E_initial
