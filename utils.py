@@ -639,7 +639,7 @@ def plot_range(x, factor = 1.1):
     """
     Given quantity x, return a convenient plot range choice.
     """
-    x_min, x_max = np.min(x), np.max(x)
+    x_min, x_max = np.percentile(x, 5), np.percentile(x, 95)
     x_range = (x_max - x_min) * factor
     x_center = (x_min + x_max) / 2.
     x_max = x_center + x_range /2.
