@@ -496,7 +496,7 @@ class lightsource_gym(object):
         for m in xrange(self.Nchain):
             # Set the initial values.
             q_initial = q_model_0
-            p_initial = self.p_sample()            
+            p_initial = self.p_sample()
             self.q_chain[m, 0, :] = q_model_0
             # self.p_chain[m, 0, :] = self.p_sample()[0]
             # self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
@@ -563,7 +563,7 @@ class lightsource_gym(object):
 
         return 
 
-    def RHMC_efficient_computation(self, q_tmp, p_tmp, debug=True):
+    def RHMC_efficient_computation(self, q_tmp, p_tmp, debug=True, dVdqq_only=False):
         """
         Given current parameters, return quantities of interest.
         """
@@ -638,6 +638,8 @@ class lightsource_gym(object):
             # dVdqqq
             dVdqqq[3*k:3*(k+1)] = np.array([dVdfff, dVdxxx, dVdyyy])                    
 
+        if dVdqq_only:
+            return dVdqq
 
         # Compute quantities of interest.
         dqdt = p_tmp / dVdqq # inv_cov_p = H^-1                 
@@ -707,6 +709,7 @@ class lightsource_gym(object):
 
         # Set first point
         q_tmp = q_model_0
+        p_tmp = np.zero_like(q_tmp)
         #---- Looping over chains
         for m in xrange(self.Nchain):
             #---- Looping over iterations
@@ -715,7 +718,8 @@ class lightsource_gym(object):
                 q_initial = q_tmp
 
                 # Resample moementum
-                p_tmp = self.p_sample()
+                dVdqq = self.RHMC_efficient_computation(q_tmp, p_tmp, debug=False, dVdqq_only=True)
+                p_tmp = self.p_sample() * np.sqrt(dVdqq)
 
                 #---- Efficient computation of grads and energies.                 
                 if debug:
