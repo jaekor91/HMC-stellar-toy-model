@@ -599,8 +599,6 @@ class lightsource_gym(object):
         #---- Allocate storage for variables being inferred.
         # The zeroth slot is reserved for the initial. The first iteration takes 0 --> 1.
         self.q_chain = np.zeros((self.Nchain, self.Niter+1, self.d))
-        # self.p_chain = np.zeros((self.Nchain, self.Niter+1, self.d))
-        # self.V_chain = np.zeros((self.Nchain, self.Niter+1, 1))
         self.E_chain = np.zeros((self.Nchain, self.Niter+1, 1))
         self.dE_chain = np.zeros((self.Nchain, self.Niter+1, 1))
         self.A_chain = np.zeros((self.Nchain, self.Niter, 1)) # Acceptance rate chain. There are only Niter transitions.
@@ -612,9 +610,9 @@ class lightsource_gym(object):
             q_initial = q_model_0
             p_initial = self.p_sample()            
             self.q_chain[m, 0, :] = q_model_0
-            # self.p_chain[m, 0, :] = self.p_sample()[0]
-            # self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
-            self.E_chain[m, 0, 0] = self.E_RHMC(q_initial, p_initial)
+
+            #---- Efficient computation of grads and energies. 
+            self.E_chain[m, 0, 0] = #
             self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
             E_previous = self.E_chain[m, 0, 0]
             q_tmp = q_initial
@@ -626,6 +624,9 @@ class lightsource_gym(object):
                 # Resample moementum
                 p_tmp = self.p_sample()
 
+                #---- Efficient computation of grads and energies. 
+
+
                 # Compute E and dE and save
                 E_initial = self.E(q_tmp, p_tmp)
                 self.E_chain[m, i, 0] = E_initial
@@ -635,7 +636,7 @@ class lightsource_gym(object):
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
                 p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step
                 iflip = np.zeros(self.d, dtype=bool) # Flip array.                
-                for _ in xrange(steps_sample): 
+                for _ in xrange(steps_sample):
                     flip = False
                     q_tmp = q_tmp + self.dt * p_half
                     # We only consider constraint in the flux direction.
@@ -742,16 +743,15 @@ class lightsource_gym(object):
 
         return self.V(q) + self.K(p)
 
-    def E_RHMC(self, q, p):
+    def K(self, p):
         """
-        Kinetic plus potential energy    
+        The user supplies potential energy and its gradient.
+        User also sets the form of kinetic distribution.
+        Kinetic energy -ln P(p)
         """
-        Nobjs = q.size // 3 # Assume that q is flat.s
-        for l in xrange(Nobjs):
-            if q[3 * l] < self.f_lim:
-                return np.infty
+        # return np.dot(p, np.dot(self.inv_cov_p, p)) / 2. 
+        return np.dot(p, p) / 2. # We assume identity covariance.
 
-        return self.V(q) + self.K_RHMC(p)        
 
     def p_sample(self):
         """
