@@ -519,7 +519,7 @@ class lightsource_gym(object):
 
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-                p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step
+                p_half = p_tmp - self.dt * self.dVdq(q_tmp) / 2. # First half step
                 iflip = np.zeros(self.d, dtype=bool) # Flip array.                
                 for _ in xrange(steps_sample): 
                     flip = False
@@ -565,7 +565,7 @@ class lightsource_gym(object):
 
 
     def RHMC_random(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
-        f_lim = 0., f_lim_default = False):
+        f_lim = 0., f_lim_default = False, dt_RHMC=0.1):
         """
         Perform Bayesian inference with RHMC given an initial model q_model_0 (Nobjs, 3). 
         No change in dimension is implemented. 
@@ -604,75 +604,77 @@ class lightsource_gym(object):
         self.A_chain = np.zeros((self.Nchain, self.Niter, 1)) # Acceptance rate chain. There are only Niter transitions.
         # Samples are taken from [1, Niter + 1]
 
+        # Set first point
+        q_tmp = q_model_0
         #---- Looping over chains
         for m in xrange(self.Nchain):
-            # Set the initial values.
-            q_initial = q_model_0
-            p_initial = self.p_sample()            
-            self.q_chain[m, 0, :] = q_model_0
-
-            #---- Efficient computation of grads and energies. 
-            self.E_chain[m, 0, 0] = #
-            self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
-            E_previous = self.E_chain[m, 0, 0]
-            q_tmp = q_initial
             #---- Looping over iterations
-            for i in xrange(1, self.Niter+1, 1):
+            for i in xrange(0, self.Niter+1, 1):
                 #---- Initial
                 q_initial = q_tmp
 
                 # Resample moementum
                 p_tmp = self.p_sample()
 
-                #---- Efficient computation of grads and energies. 
+                #---- Efficient computation of grads and energies.                 
 
-
-                # Compute E and dE and save
-                E_initial = self.E(q_tmp, p_tmp)
-                self.E_chain[m, i, 0] = E_initial
-                self.dE_chain[m, i, 0] = E_initial - E_previous                    
-
-                #---- Looping over a random number of steps
-                steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-                p_half = p_tmp - self.dt * self.dVdq(q_tmp) # First half step
-                iflip = np.zeros(self.d, dtype=bool) # Flip array.                
-                for _ in xrange(steps_sample):
-                    flip = False
-                    q_tmp = q_tmp + self.dt * p_half
-                    # We only consider constraint in the flux direction.
-                    # If any of the flux is below the limiting point, then change the momentum direction
-                    for l in xrange(self.Nobjs):
-                        if q_tmp[3 * l] < self.f_lim:
-                            iflip[3 * l] = True
-                            flip = True
-                    if flip: # If fix due to constraint.
-                        p_half_tmp = -p_half[iflip] # Flip the direction.
-                        p_half = p_half - self.dt * self.dVdq(q_tmp) # Update as usual
-                        p_half[iflip] = p_half_tmp # Make correction
-                    else:
-                        p_half = p_half - self.dt * self.dVdq(q_tmp) # If no correction, then regular update.
-
-                # Final half step correction
-                if flip:
-                    p_half_tmp = p_half[iflip] # Save 
-                    p_half = p_half + self.dt * self.dVdq(q_tmp) / 2.# Update as usual 
-                    p_half[iflip] = p_half_tmp # Make correction                    
-                else:
-                    p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
-
-                # Compute final energy and save.
-                E_final = self.E(q_tmp, p_tmp)
-                    
-                # With correct probability, accept or reject the last proposal.
-                dE = E_final - E_initial
-                E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
-                lnu = np.log(np.random.random(1))        
-                if (dE < 0) or (lnu < -dE): # If accepted.
-                    self.A_chain[m, i-1, 0] = 1
-                    self.q_chain[m, i, :] = q_tmp # save the new point
-                else: # Otherwise, proposal rejected.
-                    self.q_chain[m, i, :] = q_initial # save the old point
+                if i == 0:
+                    self.q_chain[m, 0, :] = q_tmp
+                    self.E_chain[m, 0, 0] = #
+                    self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
+                    E_previous = self.E_chain[m, 0, 0]
                     q_tmp = q_initial
+                else:
+                    # Compute E and dE and save
+                    E_initial = # 
+                    self.E_chain[m, i, 0] = E_initial
+                    self.dE_chain[m, i, 0] = E_initial - E_previous                    
+
+                    #---- Looping over a random number of steps
+                    steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+
+                    #---- First half step for momentum
+                    p_half = p_tmp - dt_RHMC * / 2.# 
+                    iflip = np.zeros(self.d, dtype=bool) # Flip array.                
+                    for _ in xrange(steps_sample):
+                        #---- Efficient computation of grads and energies
+                        
+                        flip = False
+                        q_tmp = q_tmp + dt_RHMC * p_half
+                        # We only consider constraint in the flux direction.
+                        # If any of the flux is below the limiting point, then change the momentum direction
+                        for l in xrange(self.Nobjs):
+                            if q_tmp[3 * l] < self.f_lim:
+                                iflip[3 * l] = True
+                                flip = True
+                        if flip: # If fix due to constraint.
+                            p_half_tmp = -p_half[iflip] # Flip the direction.
+                            p_half = p_half - dt_RHMC * self.dVdq(q_tmp) # Update as usual
+                            p_half[iflip] = p_half_tmp # Make correction
+                        else:
+                            p_half = p_half - dt_RHMC * self.dVdq(q_tmp) # If no correction, then regular update.
+
+                    # Final half step correction
+                    if flip:
+                        p_half_tmp = p_half[iflip] # Save 
+                        p_half = p_half + dt_RHMC * self.dVdq(q_tmp) / 2.# Update as usual 
+                        p_half[iflip] = p_half_tmp # Make correction                    
+                    else:
+                        p_tmp = p_half + dt_RHMC * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
+
+                    # Compute final energy and save.
+                    E_final = self.E(q_tmp, p_tmp)
+                        
+                    # With correct probability, accept or reject the last proposal.
+                    dE = E_final - E_initial
+                    E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
+                    lnu = np.log(np.random.random(1))        
+                    if (dE < 0) or (lnu < -dE): # If accepted.
+                        self.A_chain[m, i-1, 0] = 1
+                        self.q_chain[m, i, :] = q_tmp # save the new point
+                    else: # Otherwise, proposal rejected.
+                        self.q_chain[m, i, :] = q_initial # save the old point
+                        q_tmp = q_initial
 
             print "Chain %d Acceptance rate: %.2f%%" % (m, np.sum(self.A_chain[m, :] * 100)/float(self.Niter))
 
