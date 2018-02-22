@@ -635,7 +635,7 @@ class lightsource_gym(object):
 
         # Compute quantities of interest.
         dqdt = p_tmp / dVdqq # inv_cov_p = H^-1                 
-        dpdt = dVdqqq * ((1./dVdqq) - dqdt**2) / 2. # dqdt = p_tmp **2 / dVdqq**2
+        dpdt = -dVdqqq * ((1./dVdqq) - dqdt**2) / 2. - dVdq # dqdt = p_tmp **2 / dVdqq**2
         E = np.sum((p_tmp ** 2) / dVdqq) / 2. + np.log(np.product(dVdqq)) / 2. # Frist corresponds to the qudractic term and the other determinant.
         return dqdt, dpdt, E
 
@@ -696,9 +696,6 @@ class lightsource_gym(object):
                 #---- Efficient computation of grads and energies.                 
                 # print "/--- %d" % i                 
                 dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_tmp)
-                # print dqdt
-                # print dpdt
-                # print E
 
                 if i == 0:
                     self.q_chain[m, 0, :] = q_tmp
@@ -718,9 +715,19 @@ class lightsource_gym(object):
                     #---- First half step for momentum
                     p_half = p_tmp - dt_RHMC * dpdt / 2.# 
                     iflip = np.zeros(self.d, dtype=bool) # Flip array.                
+                    E_tmp = E
                     for z in xrange(steps_sample):
+                        # print "/- %d" % z                 
                         #---- Efficient computation of grads and energies
                         dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half)
+                        # print "q", q_tmp
+                        # print "dqdt", dqdt
+                        # print "p", p_tmp
+                        # print "dpdt", dpdt
+                        # print "E and dE", E, E-E_tmp
+                        # E_tmp = E
+                        # print "\n"
+
                         flip = False
                         q_tmp += dt_RHMC * dqdt
                         # We only consider constraint in the flux direction.
@@ -737,10 +744,10 @@ class lightsource_gym(object):
 
                         if flip: # If fix due to constraint.
                             p_half_tmp = -p_half[iflip] # Flip the direction.
-                            p_half = p_half - dt_tmp * dpdt # Update as usual
+                            p_half = p_half + dt_tmp * dpdt # Update as usual
                             p_half[iflip] = p_half_tmp # Make correction
                         else:
-                            p_half = p_half - dt_tmp *  dpdt# If no correction, then regular update.
+                            p_half = p_half + dt_tmp *  dpdt# If no correction, then regular update.
 
                     # Compute and save the final energy
                     _, _, E_final = self.RHMC_efficient_computation(q_tmp, p_half)
@@ -755,6 +762,8 @@ class lightsource_gym(object):
                     else: # Otherwise, proposal rejected.
                         self.q_chain[m, i, :] = q_initial # save the old point
                         q_tmp = q_initial
+
+                    # print "\n\n"
 
             print "Chain %d Acceptance rate: %.2f%%" % (m, np.sum(self.A_chain[m, :] * 100)/float(self.Niter))
 
