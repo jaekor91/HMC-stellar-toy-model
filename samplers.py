@@ -581,7 +581,7 @@ class lightsource_gym(object):
         # Compute reused quantities
         rho0 = self.D/Lambda
         rho1 = 1-rho0
-        rho2 = rho1/Lambda
+        rho2 = rho0/Lambda
         rho3 = rho2/Lambda
         lv = np.arange(0, self.num_rows) + 0.5
         mv = np.arange(0, self.num_cols) + 0.5
@@ -637,7 +637,6 @@ class lightsource_gym(object):
         dqdt = p_tmp / dVdqq # inv_cov_p = H^-1                 
         dpdt = dVdqqq * ((1./dVdqq) - dqdt**2) / 2. # dqdt = p_tmp **2 / dVdqq**2
         E = np.sum((p_tmp ** 2) / dVdqq) / 2. + np.log(np.product(dVdqq)) / 2. # Frist corresponds to the qudractic term and the other determinant.
-
         return dqdt, dpdt, E
 
 
@@ -695,7 +694,11 @@ class lightsource_gym(object):
                 p_tmp = self.p_sample()
 
                 #---- Efficient computation of grads and energies.                 
+                # print "/--- %d" % i                 
                 dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_tmp)
+                # print dqdt
+                # print dpdt
+                # print E
 
                 if i == 0:
                     self.q_chain[m, 0, :] = q_tmp
