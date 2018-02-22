@@ -563,6 +563,83 @@ class lightsource_gym(object):
 
         return 
 
+    def RHMC_efficient_computation(q_tmp, p_tmp):
+        """
+        Given current parameters, return quantities of interest.
+        """
+        # Place holders
+        dVdq = np.zeros(self.d)
+        dVdqq = np.zeros(self.d)
+        dVdqqq = np.zeros(self.d)                
+
+        # Construct current model
+        Lambda = np.ones_like(self.D) * self.B_count # Model set to background                
+        for k in xrange(self.Nobjs):
+            f, x, y = q_tmp[3*k:3*k+3]
+            Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
+
+        # Compute reused quantities
+        rho0 = self.D/Lambda
+        rho1 = 1-rho0
+        rho2 = rho1/Lambda
+        rho3 = rho2/Lambda
+        lv = np.arange(0, self.num_rows) + 0.5
+        mv = np.arange(0, self.num_cols) + 0.5
+        mv, lv = np.meshgrid(lv, mv)
+        var = (self.PSF_FWHM_pix/2.354)**2 
+
+        # Compute grads 
+        for k in range(self.Nobjs):
+            f, x, y = q_tmp[3*k:3*k+3]
+            # f
+            PSF = gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
+            PSF_sq = PSF**2                    
+            PSF_cube = PSF_sq * PSF                    
+            # x
+            dPSFdx = PSF * (lv - x) / var
+            dPSFdx_sq = dPSFdx**2                    
+            dPSFdxx = (dPSFdx * (lv - x) - PSF) / var
+            dPSFdxxx = (dPSFdxx * (lv - x) - 2 * dPSFdx) / var
+            # y
+            dPSFdy = PSF * (mv - y) / var
+            dPSFdy_sq = dPSFdy**2
+            dPSFdyy = (dPSFdy * (mv - y) - PSF) / var
+            dPSFdyyy = (dPSFdyy * (mv - y) - 2 * dPSFdy) / var
+
+            # Derivatives
+            # f
+            dVdf = np.sum(rho1 * PSF)
+            dVdff = np.sum(rho2 * PSF_sq)
+            dVdfff = -2 * np.sum(rho3 * PSF_cube)
+            # x
+            dVdx = f * np.sum(rho1 * dPSFdx)
+            dVdxx =  f**2 * np.sum(rho2 * dPSFdx_sq) + f * np.sum(rho1 * dPSFdxx)
+            dVdxxx =  - f**3 * np.sum(rho3 * dPSFdx_sq * dPSFdx) + 3 * f**2 * np.sum(rho2 * dPFSdx * dPSFdxx)\
+                + f * np.sum(rho1 * dPSFdxxx)  
+            # y
+            dVdy = f * np.sum(rho1 * dPSFdy)
+            dVdyy =  f**2 * np.sum(rho2 * dPSFdy_sq) + f * np.sum(rho1 * dPSFdyy)
+            dVdyyy =  - f**3 * np.sum(rho3 * dPSFdy_sq * dPSFdy) + 3 * f**2 * np.sum(rho2 * dPFSdy * dPSFdyy)\
+                + f * np.sum(rho1 * dPSFdyyy)  
+
+
+            # Save the results
+            # dVdq
+            dVdq[3*k:3*(k+1)] = np.array([dVdf, dVdx, dVdy])
+
+            # dVdqq
+            dVdqq[3*k:3*(k+1)] = np.array([dVdff, dVdxx, dVdyy])
+
+            # dVdqqq
+            dVdqqq[3*k:3*(k+1)] = np.array([dVdfff, dVdxxx, dVdyyy])                    
+
+        # Compute quantities of interest.
+        dqdt = p_tmp / dVdqq # inv_cov_p = H^-1                 
+        dpdt = dVdqqq * ((1./dVdqq) - dqdt**2) / 2. # dqdt = p_tmp **2 / dVdqq**2
+        E = (p_tmp ** 2) / (2 * dVdqq) + np.product(dVdqq) / 2.
+
+        return dqdt, dpdt, E
+
 
     def RHMC_random(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
         f_lim = 0., f_lim_default = False, dt_RHMC=0.1):
@@ -581,8 +658,9 @@ class lightsource_gym(object):
         self.thin_rate = thin_rate
         self.Nwarmup = Nwarmup
 
-        #---- Number of objects should have been already determined via optimal step search
-        assert self.d is not None
+        #---- Determine number of objects here
+        self.Nobjs = q_model_0.shape[0]
+        self.d = self.Nobjs * 3
 
         #---- Min flux
         if f_lim_default:
@@ -617,16 +695,17 @@ class lightsource_gym(object):
                 p_tmp = self.p_sample()
 
                 #---- Efficient computation of grads and energies.                 
+                dqdt, dptdt, E = RHMC_efficient_computation(q_tmp, p_tmp)
 
                 if i == 0:
                     self.q_chain[m, 0, :] = q_tmp
-                    self.E_chain[m, 0, 0] = #
+                    self.E_chain[m, 0, 0] = E #
                     self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
                     E_previous = self.E_chain[m, 0, 0]
                     q_tmp = q_initial
                 else:
                     # Compute E and dE and save
-                    E_initial = # 
+                    E_initial = E # 
                     self.E_chain[m, i, 0] = E_initial
                     self.dE_chain[m, i, 0] = E_initial - E_previous                    
 
@@ -634,36 +713,32 @@ class lightsource_gym(object):
                     steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
 
                     #---- First half step for momentum
-                    p_half = p_tmp - dt_RHMC * / 2.# 
+                    p_half = p_tmp - dt_RHMC * dpdt / 2.# 
                     iflip = np.zeros(self.d, dtype=bool) # Flip array.                
-                    for _ in xrange(steps_sample):
+                    for z in xrange(steps_sample):
                         #---- Efficient computation of grads and energies
-                        
+                        dqdt, dpdt, E = RHMC_efficient_computation(q_tmp, p_half)
                         flip = False
-                        q_tmp = q_tmp + dt_RHMC * p_half
+                        q_tmp += dt_RHMC * dqdt
                         # We only consider constraint in the flux direction.
                         # If any of the flux is below the limiting point, then change the momentum direction
                         for l in xrange(self.Nobjs):
                             if q_tmp[3 * l] < self.f_lim:
                                 iflip[3 * l] = True
                                 flip = True
+                        # If this is the last step
+                        if z == steps_sample-1:
+                            dt_tmp = dt_RHMC/2.
+
                         if flip: # If fix due to constraint.
                             p_half_tmp = -p_half[iflip] # Flip the direction.
-                            p_half = p_half - dt_RHMC * self.dVdq(q_tmp) # Update as usual
+                            p_half = p_half - dt_tmp * dpdt # Update as usual
                             p_half[iflip] = p_half_tmp # Make correction
                         else:
-                            p_half = p_half - dt_RHMC * self.dVdq(q_tmp) # If no correction, then regular update.
+                            p_half = p_half - dt_RHMC *  dpdt# If no correction, then regular update.
 
-                    # Final half step correction
-                    if flip:
-                        p_half_tmp = p_half[iflip] # Save 
-                        p_half = p_half + dt_RHMC * self.dVdq(q_tmp) / 2.# Update as usual 
-                        p_half[iflip] = p_half_tmp # Make correction                    
-                    else:
-                        p_tmp = p_half + dt_RHMC * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
-
-                    # Compute final energy and save.
-                    E_final = self.E(q_tmp, p_tmp)
+                    # Compute and save the final energy
+                    _, _, E_final = RHMC_efficient_computation(q_tmp, p_half)
                         
                     # With correct probability, accept or reject the last proposal.
                     dE = E_final - E_initial
