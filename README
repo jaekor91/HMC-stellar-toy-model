@@ -110,6 +110,11 @@ Single inference:
 - Products: 
 	./figures/one-star-inference/single/one-star-inference-single-mB%d-mT%.1f-mlim%.1f.png
 
+Best time step inference:
+- Notes: For various truth cases, infer best time steps through trial and error and compare to the analytical result.
+	mT = 15, 16, 17, .. , 21, 21.5, 21.6, 21.7
+- Script: one-star-best-dt.py
+
 
 
 /---- Two star inference problem
