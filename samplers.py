@@ -753,6 +753,8 @@ class lightsource_gym(object):
                     #---- First half step for momentum
                     p_half = p_tmp + dt_RHMC * dpdt / 2.# 
                     iflip = np.zeros(self.d, dtype=bool) # Flip array.                
+                    iflip_x = np.zeros(self.d, dtype=bool) # Flip array.                
+                    iflip_y = np.zeros(self.d, dtype=bool) # Flip array.                                    
                     for z in xrange(steps_sample):
                         if debug:
                             print "/- %d" % z  
@@ -762,14 +764,22 @@ class lightsource_gym(object):
                             print "Divergence encountered at (%d ,%d)" % (i, z)
                             break
                         flip = False
+                        flip_x = False
+                        flip_y = False
                         q_tmp += dt_RHMC * dqdt
-
                         # We only consider constraint in the flux direction.
                         # If any of the flux is below the limiting point, then change the momentum direction
                         for l in xrange(self.Nobjs):
                             if q_tmp[3 * l] < self.f_lim:
                                 iflip[3 * l] = True
                                 flip = True
+                            if (q_tmp[3 * l + 1] < 0) or (q_tmp[3 * l + 1] < self.num_rows):
+                                iflip_x[3 * l + 1] = True
+                                flip_x = True
+                            if (q_tmp[3 * l + 2] < 0) or (q_tmp[3 * l + 2] < self.num_rows):
+                                iflip_y[3 * l + 2] = True
+                                flip_y = True
+
                         # If this is the last step
                         if z == steps_sample-1:
                             dt_tmp = dt_RHMC/2.
@@ -781,12 +791,18 @@ class lightsource_gym(object):
                             print "p step"
                         dqdt, dpdt, E = self.RHMC_efficient_computation(q_tmp, p_half, debug)
 
+                        #-- Bounce off boundary
+                        p_half_tmp = -p_half # Flip the direction.                        
+                        p_half += dt_tmp * dpdt # Update as usual                        
+                        # f
                         if flip: # If fix due to constraint.
-                            p_half_tmp = -p_half[iflip] # Flip the direction.
-                            p_half += dt_tmp * dpdt # Update as usual
-                            p_half[iflip] = p_half_tmp # Make correction
-                        else:
-                            p_half += dt_tmp *  dpdt# If no correction, then regular update.
+                            p_half[iflip] = p_half_tmp[iflip] # Make correction
+                        # x
+                        if flip_x: # If fix due to constraint.
+                            p_half[iflip_x] = p_half_tmp[iflip_x] # Make correction
+                        # f
+                        if flip_y: # If fix due to constraint.
+                            p_half[iflip_y] = p_half_tmp[iflip_y] # Make correction
 
                         if debug:
                             print "\n"
@@ -817,7 +833,12 @@ class lightsource_gym(object):
                     if debug:
                         print "\n\n"
 
-            print "Chain %d Acceptance rate: %.2f%%" % (m, np.sum(self.A_chain[m, :] * 100)/float(self.Niter))
+                    if (i % 100) == 0: 
+                        self.R_accept = np.sum(self.A_chain[m, :i] * 100)/float(i)
+                        if self.R_accept < 50:
+                            break
+            self.R_accept = np.sum(self.A_chain[m, :] * 100)/float(self.Niter)
+            print "Chain %d Acceptance rate: %.2f%%" % (m, self.R_accept)
 
         return 
 
