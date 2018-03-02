@@ -1250,13 +1250,13 @@ class RHMC_GMM(object):
             p = np.random.randn(self.D)
         
         # Save the initial point and energies
+        q = q0                
         V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
         self.Vs[0] = V
         self.Ts[0] = self.T_RHMC(p, H_ii)
         self.qs[0, :] = q0
                 
         # Iterations
-        q = q0        
         for i in xrange(1, Nsteps+1):
             # First momentum step
             V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
@@ -1284,12 +1284,12 @@ class RHMC_GMM(object):
                 q = q_tmp          
             
             # "Second" momentum update
-            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(sig)            
+            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)            
             p -= (eps/2.) * self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
 
             # Last momentum update
             V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
-            p -= (eps/2.) * self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)            
+            p -= (eps/2.) * self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)
             
             # Save the results
             self.Vs[i] = V
