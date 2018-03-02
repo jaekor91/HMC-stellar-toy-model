@@ -1201,8 +1201,13 @@ class RHMC_GMM(object):
         # Calculation of J_ii
         x_ii = alpha * H_ii
         sinh = np.sinh(x_ii)
-        cosh = np.cosh(x_ii)
-        J_ii = (cosh/sinh) - x_ii / sinh**2
+        tanh = np.tanh(x_ii)
+        J_ii = 1 / tanh - x_ii / sinh**2
+        # print "Inside of dtau_dq"        
+        # print "x_ii", x_ii
+        # print "sinh", sinh
+        # print "tanh", tanh
+
         
         # Calculation of M_ii
         M_ii = J_ii * p**2
@@ -1216,18 +1221,22 @@ class RHMC_GMM(object):
         # Calculation of J_ii
         x_ii = alpha * H_ii
         sinh = np.sinh(x_ii)
-        cosh = np.cosh(x_ii)
-        J_ii = (cosh/sinh) - x_ii / sinh**2
+        tanh = np.tanh(x_ii)
+        J_ii = 1 / tanh - x_ii / sinh**2
+        # print "Inside of dphi_dq"
+        # print "x_ii", x_ii
+        # print "sinh", sinh
+        # print "tanh", tanh
         
         # Calculation of M_ii
-        M_ii = J_ii * sinh / (H_ii * cosh)
+        M_ii = J_ii * tanh / H_ii
         
         # Calculation of grad
         grad = 0.5 * np.dot(H_ii_Dq, M_ii) + V_Dq
         
         return grad
     
-    def RHMC_single_simulator(self, q0, Nsteps = 100, eps=0.5, alpha=1e6, delta = 1, p=None): 
+    def RHMC_single_simulator(self, q0, Nsteps = 100, eps=0.5, alpha=1e6, delta = 1, p=None, debug=False): 
         """
         Given the intial point q0, randomly sample a momentum from uni-variate normal 
         and simulate dyanmics for Nsteps.
@@ -1242,6 +1251,7 @@ class RHMC_GMM(object):
         """
         # Place holder for positions and energies
         self.qs = np.zeros((Nsteps+1, self.D)) # +1 is for the initial position.
+        self.ps = np.zeros((Nsteps+1, self.D)) # +1 is for the initial position.        
         self.Vs = np.zeros(Nsteps+1)
         self.Ts = np.zeros(Nsteps+1)        
         
@@ -1255,9 +1265,13 @@ class RHMC_GMM(object):
         self.Vs[0] = V
         self.Ts[0] = self.T_RHMC(p, H_ii)
         self.qs[0, :] = q0
+        self.ps[0, :] = p
                 
         # Iterations
         for i in xrange(1, Nsteps+1):
+            if debug:
+                if i % 10 == 0:
+                    print "/---- Iteration %d" % i 
             # First momentum step
             V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
             p -= (eps/2.) * self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)
@@ -1295,6 +1309,7 @@ class RHMC_GMM(object):
             self.Vs[i] = V
             self.Ts[i] = self.T_RHMC(p, H_ii)
             self.qs[i, :] = q
+            self.ps[i, :] = p            
         
         # Total energy
         self.Es = self.Vs + self.Ts
