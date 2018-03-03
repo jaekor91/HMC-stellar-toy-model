@@ -1053,24 +1053,23 @@ class RHMC_GMM(object):
         # Cache a quantity used repeatedly. (i, l)
         G = np.zeros((self.D, self.K)) # Just a lousy name.
         for l in xrange(self.K):
-            G[:, l] = np.dot(self.inv_S_ls[l], (q - self.mu_ls[l]))
+            G[:, l] = self.inv_S_ls[l].dot(q - self.mu_ls[l])
         
         # Compute first derivative. 
-        pi_ls_Dq = -G * pi_ls # (i, l)
+        pi_ls_Dq = -G * pi_ls # (i, l) * l
         
         if HMC:
             return pi_ls, pi_ls_Dq
         
         # Compute second derivative
         pi_ls_Dqq = np.zeros((self.D, self.D, self.K)) # (i, j, l)
-        pi_ls_Dqq_diag = np.zeros((self.D, self.K))         
         for l in xrange(self.K):
-            pi_ls_Dqq[:, :, l] = (G[:, l].T * G[:, l] - self.inv_S_ls[l]) * pi_ls[l]
+            pi_ls_Dqq[:, :, l] = (G[:, l].reshape((self.D, 1)) * G[:, l] - self.inv_S_ls[l]) * pi_ls[l]
             
         # Compute restricted third derivative
         pi_ls_Dqqq = np.zeros((self.D, self.D, self.K)) # (n, i, l)
         for l in xrange(self.K):
-            pi_ls_Dqqq[:, :, l] = G[:, l].T * (-G[:, l]**2 + np.diag(self.inv_S_ls[l]) ) * pi_ls[l]
+            pi_ls_Dqqq[:, :, l] = G[:, l].reshape((self.D, 1)) * (-G[:, l]**2 + np.diag(self.inv_S_ls[l]) ) * pi_ls[l]
             
         #--- Debug lines
         # print RHMC.pi_l(0, 0)        
