@@ -1114,7 +1114,7 @@ class RHMC_GMM(object):
         V_Dq = -pi_Dq / pi
         
         # Second derivative
-        V_Dqq = pi_Dq.reshape((self.D, 1)) * pi_Dq - pi_Dqq / pi
+        V_Dqq = V_Dq.reshape((self.D, 1)) * V_Dq - pi_Dqq / pi
         
         # Second diagonal
         H_ii = np.diag(V_Dqq)
