@@ -986,34 +986,35 @@ class RHMC_GMM(object):
     Practice implementing RHMC with a GMM model.
     """
     
-    def __init__(self, A_ls=None, mu_ls=None, S_ls=None):
+    def __init__(self, A_ls=None, mu_ls=None, S_ls=None, option=1):
         """
         Input quantities define the Gaussian mixture model.
         """
         # If any of the quantities not provided, then go with a default.
         if (A_ls is None) or (S_ls is None) or (mu_ls is None):
-#             # --- Signel component example
-#             A_ls = np.array([1.])
-#             S_ls = np.array([
-#                             [[1., 0.], # first
-#                              [0., 0.5]]
-#                             ])
-#             mu_ls = np.array([
-#                             [0., 0.] # first
-#                             ]) 
-            
-            # --- Two component example
-            A_ls = np.array([0.5, 0.5])
-            S_ls = np.array([
-                            [[1., 0.], # first
-                             [0., 1.]],
-                             [[1e-4, 0.], # second
-                              [0., 1e-4]]
-                            ])
-            mu_ls = np.array([
-                            [0., 0.], # first
-                            [0., 0.] # second
-                            ]) 
+            if option==1:
+                # --- Signel component example
+                A_ls = np.array([1.])
+                S_ls = np.array([
+                                [[1., 0.], # first
+                                 [0., 0.5]]
+                                ])
+                mu_ls = np.array([
+                                [0., 0.] # first
+                                ]) 
+            elif option == 2:            
+                # --- Two component example
+                A_ls = np.array([0.5, 0.5])
+                S_ls = np.array([
+                                [[1., 0.], # first
+                                 [0., 1.]],
+                                 [[1e-2, 0.], # second
+                                  [0., 1e-2]]
+                                ])
+                mu_ls = np.array([
+                                [0., 0.], # first
+                                [0., 0.] # second
+                                ]) 
         
         self.A_ls = A_ls
         self.mu_ls = mu_ls
@@ -1123,7 +1124,7 @@ class RHMC_GMM(object):
         # Third restricted derivative
         H_ii_Dq = 2 * V_Dqq * V_Dq + pi_Dq.T * pi_Dqq_diag / pi*2 - pi_Dqqq / pi
         
-        return V, V_Dq, V_Dqq, H_ii, H_ii_Dq
+        return V, V_Dq, V_Dqq, H_ii, H_ii_Dq.T
     
     def V_dVdq_HMC(self, q):
         """
@@ -1208,7 +1209,6 @@ class RHMC_GMM(object):
         # print "sinh", sinh
         # print "tanh", tanh
 
-        
         # Calculation of M_ii
         M_ii = J_ii * p**2
         
@@ -1232,7 +1232,9 @@ class RHMC_GMM(object):
         M_ii = J_ii * tanh / H_ii
         
         # Calculation of grad
-        grad = 0.5 * np.dot(H_ii_Dq, M_ii) + V_Dq
+        # print "M_ii", M_ii
+        # print "H_ii_Dq", H_ii_Dq
+        grad = 0.5 * H_ii_Dq.dot(M_ii) + V_Dq
         
         return grad
     
@@ -1274,17 +1276,43 @@ class RHMC_GMM(object):
                     print "/---- Iteration %d" % i 
             # First momentum step
             V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
-            p -= (eps/2.) * self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)
+            grad = self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)
+            p -= (eps/2.) * grad 
+            # print "p", p
+            # print "grad", grad
+            # print "dVdq", V_Dq
+            # print "H_ii", H_ii
+            # print "H_ii_Dq", H_ii_Dq
+            # assert False 
+
+            if np.any(np.isnan(p)) or np.any(np.isnan(q)):
+                print "/--1"
+                print i
+                print "q", q, Dq
+                print "p", p, Dp
+                print "V", V
+                print "T", self.Ts[i]
+                assert False
             
             # First fixed iteration
             rho = np.copy(p)
             Dp = np.infty
+            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
             while Dp > delta:
-                V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)                
-                p_tmp = rho - (eps/2.) * self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
+                grad = self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
+                p_tmp = rho - (eps/2.) * grad
+                print i, grad
                 Dp = np.max(np.abs(p_tmp - p))
-                p = p_tmp
-            
+                p = p_tmp                
+                if np.any(np.isnan(p)) or np.any(np.isnan(q)):
+                    print "/--2"
+                    print i
+                    print "q", q, Dq
+                    print "p", p, Dp
+                    print "V", V
+                    print "T", self.Ts[i]
+                    assert False
+
             # Second fixed iteration
             sig = np.copy(q)
             Dq = np.infty
@@ -1295,21 +1323,44 @@ class RHMC_GMM(object):
                 grad2 = self.dtau_dp(p, H_ii)
                 q_tmp = sig + (eps/2.) * (grad1 + grad2)
                 Dq = np.max(np.abs(q_tmp - q))
-                q = q_tmp          
-            
-            # "Second" momentum update
+                q = q_tmp         
+                if np.any(np.isnan(p)) or np.any(np.isnan(q)):
+                    print "/--3"
+                    print i
+                    print "q", q, Dq
+                    print "p", p, Dp
+                    print "V", V
+                    print "T", self.Ts[i]
+                    assert False
+
+            # "Second" and last momentum update
             V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)            
             p -= (eps/2.) * self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
+            if np.any(np.isnan(p)) or np.any(np.isnan(q)):
+                print "/--4"
+                print i
+                print "q", q, Dq
+                print "p", p, Dp
+                print "V", V
+                print "T", self.Ts[i]
+                assert False
 
-            # Last momentum update
-            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
             p -= (eps/2.) * self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)
+            if np.any(np.isnan(p)) or np.any(np.isnan(q)):
+                print "/--5"
+                print i
+                print "q", q, Dq
+                print "p", p, Dp
+                print "V", V
+                print "T", self.Ts[i]
+                assert False
             
             # Save the results
+            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)                        
             self.Vs[i] = V
             self.Ts[i] = self.T_RHMC(p, H_ii)
             self.qs[i, :] = q
-            self.ps[i, :] = p            
+            self.ps[i, :] = p          
         
         # Total energy
         self.Es = self.Vs + self.Ts
