@@ -1104,7 +1104,6 @@ class RHMC_GMM(object):
                 
         return pi, pi_Dq, pi_Dqq, pi_Dqq_diag, pi_Dqqq
 
-    
     def V_and_derivatives(self, q):
         pi, pi_Dq, pi_Dqq, pi_Dqq_diag, pi_Dqqq = self.pi_and_derivatives(q)
         
@@ -1115,15 +1114,15 @@ class RHMC_GMM(object):
         V_Dq = -pi_Dq / pi
         
         # Second derivative
-        V_Dqq = pi_Dq.T * pi_Dq - pi_Dqq / pi
+        V_Dqq = pi_Dq.reshape((self.D, 1)) * pi_Dq - pi_Dqq / pi
         
         # Second diagonal
         H_ii = np.diag(V_Dqq)
         
         # Third restricted derivative
-        H_ii_Dq = 2 * V_Dqq * V_Dq + pi_Dq.T * pi_Dqq_diag / pi*2 - pi_Dqqq / pi
+        H_ii_Dq = 2 * V_Dqq * V_Dq + pi_Dq.reshape((self.D, 1)) * pi_Dqq_diag / pi*2 - pi_Dqqq / pi
         
-        return V, V_Dq, V_Dqq, H_ii, H_ii_Dq.T
+        return V, V_Dq, V_Dqq, H_ii, H_ii_Dq
     
     def V_dVdq_HMC(self, q):
         """
@@ -1221,7 +1220,7 @@ class RHMC_GMM(object):
         x_ii = alpha * H_ii
         sinh = np.sinh(x_ii)
         tanh = np.tanh(x_ii)
-        J_ii = 1 / tanh - x_ii / sinh**2
+        J_ii = (1 / tanh) - x_ii / sinh**2
         # print "Inside of dphi_dq"
         # print "x_ii", x_ii
         # print "sinh", sinh
@@ -1300,7 +1299,6 @@ class RHMC_GMM(object):
             while Dp > delta:
                 grad = self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
                 p_tmp = rho - (eps/2.) * grad
-                print i, grad
                 Dp = np.max(np.abs(p_tmp - p))
                 p = p_tmp                
                 if np.any(np.isnan(p)) or np.any(np.isnan(q)):
