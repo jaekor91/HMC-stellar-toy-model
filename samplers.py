@@ -1096,11 +1096,11 @@ class RHMC_GMM(object):
             return pi, pi_Dq
         
         # Second derivative
-        pi_Dqq = np.dot(pi_ls_Dqq, self.A_ls) # i, j
+        pi_Dqq = pi_ls_Dqq.dot(self.A_ls) # i, j
         pi_Dqq_diag = np.diag(pi_Dqq) # i
             
         # Third restricted derivative
-        pi_Dqqq = np.dot(pi_ls_Dqqq, self.A_ls) # (n, i)
+        pi_Dqqq = pi_ls_Dqqq.dot(self.A_ls) # (n, i)
                 
         return pi, pi_Dq, pi_Dqq, pi_Dqq_diag, pi_Dqqq
 
