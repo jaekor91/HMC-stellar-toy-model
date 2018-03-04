@@ -1379,9 +1379,9 @@ class RHMC_GMM(object):
             # Second fixed iteration
             sig = np.copy(q)
             Dq = np.infty
+            V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(sig)
+            grad1 = self.dtau_dp(p, H_ii, alpha)
             while Dq > delta:
-                V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(sig)
-                grad1 = self.dtau_dp(p, H_ii, alpha)
                 V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(q)
                 grad2 = self.dtau_dp(p, H_ii, alpha)
                 q_tmp = sig + (eps/2.) * (grad1 + grad2)
