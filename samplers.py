@@ -1255,8 +1255,9 @@ class RHMC_GMM(object):
         H_ii_AbsSoft = H_ii / np.tanh(alpha * H_ii)
         return np.sum(0.5 * p * p / H_ii_AbsSoft) + 0.5 * np.log(np.abs(np.product(H_ii_AbsSoft)))    
     
-    def dtau_dp(self, p, H_ii):
-        return p/H_ii
+    def dtau_dp(self, p, H_ii, alpha):
+        H_ii_SoftAbs = H_ii / np.tanh(H_ii * alpha)
+        return p/H_ii_SoftAbs
     
     def dtau_dq(self, p, H_ii, dH_iidq, alpha, debug=False):
         # Calculation of J_ii
@@ -1380,9 +1381,9 @@ class RHMC_GMM(object):
             Dq = np.infty
             while Dq > delta:
                 V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(sig)
-                grad1 = self.dtau_dp(p, H_ii)
+                grad1 = self.dtau_dp(p, H_ii, alpha)
                 V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(q)
-                grad2 = self.dtau_dp(p, H_ii)
+                grad2 = self.dtau_dp(p, H_ii, alpha)
                 q_tmp = sig + (eps/2.) * (grad1 + grad2)
                 Dq = np.max(np.abs(q_tmp - q))
                 q = q_tmp         
