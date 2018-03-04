@@ -1257,7 +1257,7 @@ class RHMC_GMM(object):
     def dtau_dp(self, p, H_ii):
         return p/H_ii
     
-    def dtau_dq(self, p, H_ii, H_ii_Dq, alpha, debug=False):
+    def dtau_dq(self, p, H_ii, dH_iidq, alpha, debug=False):
         # Calculation of J_ii
         x_ii = alpha * H_ii
         sinh = np.sinh(x_ii)
@@ -1268,7 +1268,7 @@ class RHMC_GMM(object):
         M_ii = J_ii * p**2
         
         # Calculation of grad
-        grad = -0.5 * H_ii_Dq.dot(M_ii)
+        grad = -0.5 * dH_iidq.dot(M_ii)
 
         if debug:
             print "Inside of dtau_dq"        
@@ -1280,7 +1280,7 @@ class RHMC_GMM(object):
         
         return grad
     
-    def dphi_dq(self, H_ii, H_ii_Dq, alpha, V_Dq):
+    def dphi_dq(self, H_ii, dH_iidq, alpha, dVdq):
         # Calculation of J_ii
         x_ii = alpha * H_ii
         sinh = np.sinh(x_ii)
@@ -1297,7 +1297,7 @@ class RHMC_GMM(object):
         # Calculation of grad
         # print "M_ii", M_ii
         # print "H_ii_Dq", H_ii_Dq
-        grad = 0.5 * H_ii_Dq.dot(M_ii) + V_Dq
+        grad = 0.5 * dH_iidq.dot(M_ii) + dVdq
         
         return grad
     
