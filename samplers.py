@@ -1124,6 +1124,7 @@ class RHMC_GMM(object):
         
         return V, V_Dq, V_Dqq, H_ii, H_ii_Dq
 
+
     def V_and_derivatives_stable(self, q):
         """
         Slightly more numerically stable implementation of V and its derivatives.
@@ -1160,7 +1161,7 @@ class RHMC_GMM(object):
         dVdq = G.dot(xi)
 
         # Compute dVdqq 
-        tmp =  (G[:, 0].reshape((self.D, 1)) * G[:, 0] - self.inv_S_ls[0]) * xi[0]
+        tmp =  (G[:, 0].reshape((self.D, 1)) * G[:, 0] - self.inv_S_ls[0]) * xi[0] # 
         for l in xrange(1, self.K):
             tmp += (G[:, l].reshape((self.D, 1)) * G[:, l] - self.inv_S_ls[l]) * xi[l]
         dVdqq = dVdq.reshape((self.D, 1)) * dVdq - tmp
@@ -1170,17 +1171,15 @@ class RHMC_GMM(object):
         H_ii = np.diag(dVdqq)
 
         # dH_iidq
-        tmp = (G[:, 0]**2 - np.diag(self.inv_S_ls[0])) * xi[0]
         tmp2 = (G[:, 0].reshape((self.D, 1)) * (G[:, 0]**2 - np.diag(self.inv_S_ls[l])) - 2 * self.inv_S_ls[0] * G[:, 0]) * xi[0]         
         for l in xrange(1, self.K):
-            tmp += (G[:, l]**2 - np.diag(self.inv_S_ls[l])) * xi[l]
             tmp2 += (G[:, l].reshape((self.D, 1)) * (G[:, l]**2 - np.diag(self.inv_S_ls[l])) - 2 * self.inv_S_ls[l] * G[:, l]) * xi[l] 
 
-        dH_iidq = 2 * dVdqq * dVdq - dVdq.reshape((self.D, 1)) * tmp + tmp2
-        # print "dH_iidq", dH_iidq
-        # print "First", 2 * dVdqq * dVdq
-        # print "Second", - dVdq.reshape((self.D, 1)) * tmp
-        # print "tmp2", tmp2
+        dH_iidq = 2 * dVdqq * dVdq - dVdq.reshape((self.D, 1)) * np.diag(tmp) + tmp2
+        print "dH_iidq", dH_iidq
+        print "First", 2 * dVdqq * dVdq
+        print "Second", - dVdq.reshape((self.D, 1)) * tmp
+        print "tmp2", tmp2
 
         return V, dVdq, H_ii, dH_iidq
 
