@@ -1314,7 +1314,7 @@ class RHMC_GMM(object):
         
         # Save the initial point and energies
         q = q0                
-        V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
+        V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(q)
         self.Vs[0] = V
         self.Ts[0] = self.T_RHMC(p, H_ii)
         self.qs[0, :] = q0
@@ -1326,7 +1326,7 @@ class RHMC_GMM(object):
                 if i % 10 == 0:
                     print "/---- Iteration %d" % i 
             # First momentum step
-            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
+            V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(q)
             grad = self.dphi_dq(H_ii, H_ii_Dq, alpha, V_Dq)
             p -= (eps/2.) * grad 
             # print "p", p
@@ -1348,7 +1348,7 @@ class RHMC_GMM(object):
             # First fixed iteration
             rho = np.copy(p)
             Dp = np.infty
-            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
+            V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(q)
             while Dp > delta:
                 grad = self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
                 p_tmp = rho - (eps/2.) * grad
@@ -1367,9 +1367,9 @@ class RHMC_GMM(object):
             sig = np.copy(q)
             Dq = np.infty
             while Dq > delta:
-                V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(sig)
+                V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(sig)
                 grad1 = self.dtau_dp(p, H_ii)
-                V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)
+                V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(q)
                 grad2 = self.dtau_dp(p, H_ii)
                 q_tmp = sig + (eps/2.) * (grad1 + grad2)
                 Dq = np.max(np.abs(q_tmp - q))
@@ -1384,7 +1384,7 @@ class RHMC_GMM(object):
                     assert False
 
             # "Second" and last momentum update
-            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)            
+            V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(q)
             p -= (eps/2.) * self.dtau_dq(p, H_ii, H_ii_Dq, alpha)
             if np.any(np.isnan(p)) or np.any(np.isnan(q)):
                 print "/--4"
@@ -1406,7 +1406,7 @@ class RHMC_GMM(object):
                 assert False
             
             # Save the results
-            V, V_Dq, V_Dqq, H_ii, H_ii_Dq = self.V_and_derivatives(q)                        
+            V, V_Dq, H_ii, H_ii_Dq = self.V_and_derivatives_stable(q)
             self.Vs[i] = V
             self.Ts[i] = self.T_RHMC(p, H_ii)
             self.qs[i, :] = q
