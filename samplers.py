@@ -1248,11 +1248,12 @@ class RHMC_GMM(object):
         
         return
     
-    def T_RHMC(self, p, H_ii):
+    def T_RHMC(self, p, H_ii, alpha):
         """
         Compute T_RHMC for given a diagonal H matrix.
         """
-        return np.sum(0.5 * p * p / H_ii) + 0.5 * np.log(np.abs(np.product(H_ii)))    
+        H_ii_AbsSoft = H_ii / np.tanh(alpha * H_ii)
+        return np.sum(0.5 * p * p / H_ii_AbsSoft) + 0.5 * np.log(np.abs(np.product(H_ii_AbsSoft)))    
     
     def dtau_dp(self, p, H_ii):
         return p/H_ii
@@ -1328,7 +1329,7 @@ class RHMC_GMM(object):
         q = q0                
         V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(q)
         self.Vs[0] = V
-        self.Ts[0] = self.T_RHMC(p, H_ii)
+        self.Ts[0] = self.T_RHMC(p, H_ii, alpha)
         self.qs[0, :] = q0
         self.ps[0, :] = p
                 
@@ -1419,7 +1420,7 @@ class RHMC_GMM(object):
             # Save the results
             V, dVdq, H_ii, dH_iidq = self.V_and_derivatives_stable(q)
             self.Vs[i] = V
-            self.Ts[i] = self.T_RHMC(p, H_ii)
+            self.Ts[i] = self.T_RHMC(p, H_ii, alpha)
             self.qs[i, :] = q
             self.ps[i, :] = p          
         
