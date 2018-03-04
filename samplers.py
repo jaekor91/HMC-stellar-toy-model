@@ -1258,22 +1258,26 @@ class RHMC_GMM(object):
     def dtau_dp(self, p, H_ii):
         return p/H_ii
     
-    def dtau_dq(self, p, H_ii, H_ii_Dq, alpha):
+    def dtau_dq(self, p, H_ii, H_ii_Dq, alpha, debug=False):
         # Calculation of J_ii
         x_ii = alpha * H_ii
         sinh = np.sinh(x_ii)
         tanh = np.tanh(x_ii)
-        J_ii = 1 / tanh - x_ii / sinh**2
-        # print "Inside of dtau_dq"        
-        # print "x_ii", x_ii
-        # print "sinh", sinh
-        # print "tanh", tanh
+        J_ii = (1 / tanh) - x_ii / sinh**2
 
         # Calculation of M_ii
         M_ii = J_ii * p**2
         
         # Calculation of grad
-        grad = -0.5 * np.dot(H_ii_Dq, M_ii)
+        grad = -0.5 * H_ii_Dq.dot(M_ii)
+
+        if debug:
+            print "Inside of dtau_dq"        
+            print "x_ii", x_ii
+            print "sinh", sinh
+            print "tanh", tanh
+            print "J_ii", J_ii        
+            print "M_ii", M_ii
         
         return grad
     
@@ -1366,6 +1370,11 @@ class RHMC_GMM(object):
                 if np.any(np.isnan(p)) or np.any(np.isnan(q)):
                     print "/--2"
                     print i
+                    print "H_ii", H_ii
+                    print "H_ii_Dq"
+                    print H_ii_Dq
+                    grad = self.dtau_dq(p, H_ii, H_ii_Dq, alpha, debug=True)                    
+                    print "grad", grad
                     print "q", q, Dq
                     print "p", p, Dp
                     print "V", V
