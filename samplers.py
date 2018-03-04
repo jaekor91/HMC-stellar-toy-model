@@ -1171,15 +1171,15 @@ class RHMC_GMM(object):
         H_ii = np.diag(dVdqq)
 
         # dH_iidq
-        tmp2 = (G[:, 0].reshape((self.D, 1)) * (G[:, 0]**2 - np.diag(self.inv_S_ls[0])) - 2 * self.inv_S_ls[0] * G[:, 0]) * xi[0]
+        tmp2 = (G[:, 0].reshape((self.D, 1)) * (G[:, 0]**2 - np.diag(self.inv_S_ls[0])) - 2 * self.inv_S_ls[0] * G[:, 0]) * xi[0]         
         for l in xrange(1, self.K):
             tmp2 += (G[:, l].reshape((self.D, 1)) * (G[:, l]**2 - np.diag(self.inv_S_ls[l])) - 2 * self.inv_S_ls[l] * G[:, l]) * xi[l] 
 
         dH_iidq = 2 * dVdqq * dVdq - dVdq.reshape((self.D, 1)) * np.diag(tmp) + tmp2
-        print "dH_iidq", dH_iidq
-        print "First", 2 * dVdqq * dVdq
-        print "Second", - dVdq.reshape((self.D, 1)) * tmp
-        print "tmp2", tmp2
+        # print "dH_iidq", dH_iidq
+        # print "First", 2 * dVdqq * dVdq
+        # print "Second", - dVdq.reshape((self.D, 1)) * tmp
+        # print "tmp2", tmp2
 
         return V, dVdq, H_ii, dH_iidq
 
