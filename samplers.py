@@ -1136,11 +1136,17 @@ class RHMC_GMM(object):
 
         # Compute the potential with a numerically more robust scheme
         gamma_diff = gamma - gamma_max
-        V = -gamma_max - np.log(np.sum(self.A_ls * gamma_diff))
+        gamma_diff_exp = np.exp(gamma_diff)        
+        V = -gamma_max - np.log(np.sum(self.A_ls * gamma_diff_exp))
 
         # Compute the ratio pi_l / pi
-        gamma_diff_exp = np.exp(gamma_diff)
-        r = gamma_diff_exp + (1. / np.sum(self.A_ls * gamma_diff_exp))
+        r = gamma_diff_exp / np.sum(self.A_ls * gamma_diff_exp)
+
+        # print "gamma", gamma
+        # print "gamma_max", gamma_max
+        # print "gamma_diff", gamma_diff
+        # print "A_ls * gamma_diff", self.A_ls * gamma_diff
+        # print "r", r
 
         # Compute S_l^-1 (q - mu_l) factors i, l
         G = np.zeros((self.D, self.K), dtype=float)
@@ -1157,21 +1163,24 @@ class RHMC_GMM(object):
         tmp =  (G[:, 0].reshape((self.D, 1)) * G[:, 0] - self.inv_S_ls[0]) * xi[0]
         for l in xrange(1, self.K):
             tmp += (G[:, l].reshape((self.D, 1)) * G[:, l] - self.inv_S_ls[l]) * xi[l]
-        dVdqq = dVdq.reshape((self.D, 1)) * dVdq + tmp
+        dVdqq = dVdq.reshape((self.D, 1)) * dVdq - tmp
+        # print "dVdqq", dVdqq
 
         # H_ii
         H_ii = np.diag(dVdqq)
 
         # dH_iidq
         tmp = (G[:, 0]**2 - np.diag(self.inv_S_ls[0])) * xi[0]
+        tmp2 = (G[:, 0].reshape((self.D, 1)) * (G[:, 0]**2 - np.diag(self.inv_S_ls[l])) - 2 * self.inv_S_ls[0] * G[:, 0]) * xi[0]         
         for l in xrange(1, self.K):
             tmp += (G[:, l]**2 - np.diag(self.inv_S_ls[l])) * xi[l]
+            tmp2 += (G[:, l].reshape((self.D, 1)) * (G[:, l]**2 - np.diag(self.inv_S_ls[l])) - 2 * self.inv_S_ls[l] * G[:, l]) * xi[l] 
 
-        tmp2 = (G[:, 0].reshape((self.D, 1)) * (G[:, 0]**2 - np.diag(self.inv_S_ls[l])) - 2 self.inv_S_ls[0] * G[:, 0] ) * xi[0] 
-        for l in xrange(1, self.K):
-            tmp2 += (G[:, l].reshape((self.D, 1)) * (G[:, l]**2 - np.diag(self.inv_S_ls[l])) - 2 self.inv_S_ls[l] * G[:, l] ) * xi[l] 
-
-        dH_iidq = 2 * dVdqq * dVdq.reshape((self.D, 1)) - dVdq.reshape((self.D, 1)) * tmp + tmp2
+        dH_iidq = 2 * dVdqq * dVdq - dVdq.reshape((self.D, 1)) * tmp + tmp2
+        # print "dH_iidq", dH_iidq
+        # print "First", 2 * dVdqq * dVdq
+        # print "Second", - dVdq.reshape((self.D, 1)) * tmp
+        # print "tmp2", tmp2
 
         return V, dVdq, H_ii, dH_iidq
 
