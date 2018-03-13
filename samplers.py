@@ -571,6 +571,42 @@ class lightsource_gym(object):
 
         return 
 
+    def mass_matrix(self, q):
+        """
+        Given the q (Dim = [N_stars * 3]), compute the corresponding mass matrix M 
+        s.t. M = Diag(G(f1), F(f1), F(f1), ..., G(f_N), F(f_N), F(f_N)).
+        """
+        M = np.zeros_like(q)
+
+        for i in xrange(self.Nobjs): # For each star
+            f = q[3 * i] # Flux of the star.
+
+            # Flux parts
+            M[3 * i] = self.G(f)
+            
+            # Position parts
+            M[(3 * i)+1 : 3 * (i+1)] = self.F(f)
+
+        return M
+
+    def F(self, f):
+        """
+        An approximate single star dVdxx used for RHMC_diag. 
+        """
+        return np.min(f * self.factor1, self.factor2 * f**2 / self.B_count)
+
+
+    def G(self, f):
+        """
+        An approximate single star dVdff used for RHMC_diag. 
+
+        If G is small, then the corresponding mass matrix element is small, 
+        which means the sampled momentum is small.
+        """
+        return np.max(1./f, self.factor0 / self.B_count)
+
+
+
 
     def RHMC_random_diag(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
         f_lim = 0., f_lim_default = False, dt_global=1e-2):
@@ -603,6 +639,7 @@ class lightsource_gym(object):
         if q_model_0 is None: 
             print "Use found seeds for inference."
             q_model_0 = self.q_seed
+        self.Nobjs = q_model_0.shape[0]
         q_model_0 =  q_model_0.reshape((self.d,))# Flatten 
 
         #---- Allocate storage for variables being inferred.
@@ -619,6 +656,10 @@ class lightsource_gym(object):
         for m in xrange(self.Nchain):
             # Set the initial values.
             q_initial = q_model_0
+
+            # Based on the initial q, compute the mass matrix, M = Diag(G(f1), F(f1), F(f1), ..., G(f_N), F(f_N), F(f_N))
+            M = self.mass_matrix(q_initial)
+
             p_initial = self.p_sample()
             self.q_chain[m, 0, :] = q_model_0
             # self.p_chain[m, 0, :] = self.p_sample()[0]
