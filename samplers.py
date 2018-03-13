@@ -577,8 +577,8 @@ class lightsource_gym(object):
         s.t. M = Diag(G(f1), F(f1), F(f1), ..., G(f_N), F(f_N), F(f_N)).
         """
         M = np.zeros_like(q)
-
-        for i in xrange(self.Nobjs): # For each star
+        Nobjs = int(q.shape[0]) //3
+        for i in xrange(Nobjs): # For each star
             f = q[3 * i] # Flux of the star.
 
             # Flux parts
@@ -593,7 +593,7 @@ class lightsource_gym(object):
         """
         An approximate single star dVdxx used for RHMC_diag. 
         """
-        return np.max(f * self.factor1, self.factor2 * f**2 / self.B_count)
+        return max(f * self.factor1, self.factor2 * f**2 / self.B_count)
 
 
     def G(self, f):
@@ -603,7 +603,7 @@ class lightsource_gym(object):
         If G is small, then the corresponding mass matrix element is small, 
         which means the sampled momentum is small.
         """
-        return np.max(1./f, self.factor0 / self.B_count)
+        return max(1./f, self.factor0 / self.B_count)
 
 
     def RHMC_random_diag(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
