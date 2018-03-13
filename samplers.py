@@ -573,7 +573,7 @@ class lightsource_gym(object):
 
 
     def RHMC_random_diag(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
-        f_lim = 0., f_lim_default = False):
+        f_lim = 0., f_lim_default = False, dt_global=1e-2):
         """
         Perform Bayesian inference with RHMC given an initial model q_model_0 (Nobjs, 3). 
         No change in dimension is implemented. 
