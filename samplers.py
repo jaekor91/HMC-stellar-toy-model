@@ -589,11 +589,11 @@ class lightsource_gym(object):
 
         return M
 
-    def F(self, f, DFdf=False):
+    def F(self, f, dFdf=False):
         """
         An approximate single star dVdxx used for RHMC_diag. 
         """
-        if DFdf:
+        if dFdf:
             x1 = f * self.factor1
             x2 = self.factor2 * f**2 / self.B_count
             if x1 > x2:
@@ -604,14 +604,14 @@ class lightsource_gym(object):
             return max(f * self.factor1, self.factor2 * f**2 / self.B_count)
 
 
-    def G(self, f, DGdf = False):
+    def G(self, f, dGdf = False):
         """
         An approximate single star dVdff used for RHMC_diag. 
 
         If G is small, then the corresponding mass matrix element is small, 
         which means the sampled momentum is small.
         """
-        if DGdf:
+        if dGdf:
             x1 = 1./f
             x2 = self.factor0 / self.B_count
             if x1 > x2:
