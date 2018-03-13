@@ -606,8 +606,6 @@ class lightsource_gym(object):
         return np.max(1./f, self.factor0 / self.B_count)
 
 
-
-
     def RHMC_random_diag(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
         f_lim = 0., f_lim_default = False, dt_global=1e-2):
         """
@@ -659,12 +657,11 @@ class lightsource_gym(object):
 
             # Based on the initial q, compute the mass matrix, M = Diag(G(f1), F(f1), F(f1), ..., G(f_N), F(f_N), F(f_N))
             M = self.mass_matrix(q_initial)
-
-            p_initial = self.p_sample()
+            p_initial = self.p_sample() * np.sqrt(M)
             self.q_chain[m, 0, :] = q_model_0
             # self.p_chain[m, 0, :] = self.p_sample()[0]
             # self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
-            self.E_chain[m, 0, 0] = self.E(q_initial, p_initial)
+            self.E_chain[m, 0, 0] = self.E(q_initial, p_initial, mass_matrix)
             self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
             E_previous = self.E_chain[m, 0, 0]
             q_tmp = q_initial
@@ -1061,7 +1058,7 @@ class lightsource_gym(object):
         # return np.dot(p, np.dot(self.inv_cov_p, p)) / 2. 
         return np.dot(p, p) / 2. # We assume identity covariance.
 
-    def E(self, q, p):
+    def E(self, q, p, mass_matrix=None):
         """
         Kinetic plus potential energy    
         """
@@ -1070,16 +1067,20 @@ class lightsource_gym(object):
             if q[3 * l] < self.f_lim:
                 return np.infty
 
-        return self.V(q) + self.K(p)
+        return self.V(q) + self.K(p, mass_matrix)
 
-    def K(self, p):
+    def K(self, p, mass_matrix=None):
         """
         The user supplies potential energy and its gradient.
         User also sets the form of kinetic distribution.
         Kinetic energy -ln P(p)
         """
         # return np.dot(p, np.dot(self.inv_cov_p, p)) / 2. 
-        return np.dot(p, p) / 2. # We assume identity covariance.
+        if mass_matrix is None:
+            return np.dot(p, p) / 2. # We assume identity covariance.
+        else: # Assume diagonal mass matrix. Note there is the additional term corresponding to log det.
+            return (np.sum(p**2 / mass_matrix) + np.log(np.abs(np.prod(mass_matrix)))) / 2.
+
 
 
     def p_sample(self):
