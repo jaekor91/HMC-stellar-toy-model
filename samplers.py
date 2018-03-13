@@ -632,7 +632,7 @@ class lightsource_gym(object):
             f = q[3 * i] # Flux of the star.
             G, dGdf = self.G(f, dGdf=True)
             F, dFdf = self.F(f, dFdf=True)
-            M[3 * i] = 0.5 * (dGdf / G + 2 * dFdf / F) 
+            dlnDetdq[3 * i] = 0.5 * (dGdf / G + 2 * dFdf / F) 
 
         return dlnDetdq
 
