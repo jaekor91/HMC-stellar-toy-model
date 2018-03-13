@@ -646,3 +646,19 @@ def plot_range(x, factor = 2.):
     x_min = x_center - x_range /2.    
     
     return x_min, x_max
+
+
+
+def factors(num_rows, num_cols, x, y, PSF_FWHM_pix):
+    # Compute f, x, y gradient for each object
+    lv = np.arange(0, num_rows)
+    mv = np.arange(0, num_cols)
+    mv, lv = np.meshgrid(lv, mv)
+    var = (PSF_FWHM_pix/2.354)**2 
+    PSF = gauss_PSF(num_rows, num_cols, x, y, FWHM=PSF_FWHM_pix)
+    PSF_sq = np.square(PSF)
+    factor0 = np.sum(PSF_sq)
+    factor1 = np.sum(PSF * (x - lv - 0.5)**2) / float(var **2) # sum of (dPSF/dx)^2 / PSF  
+    factor2 = np.sum(PSF_sq * (x - lv - 0.5)**2) / float(var**2) # sum of (dPSF/dx)^2
+    
+    return factor0, factor1, factor2
