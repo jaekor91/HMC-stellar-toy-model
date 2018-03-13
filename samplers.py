@@ -637,9 +637,11 @@ class lightsource_gym(object):
         return dlnDetdq
 
 
-    def RHMC_random_diag(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
+    def RHMC_random_diag(self, q_model_0, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
         f_lim = 0., f_lim_default = False, dt_global=1e-2):
         """
+        Initial seed is required. 
+
         Perform Bayesian inference with RHMC given an initial model q_model_0 (Nobjs, 3). 
         No change in dimension is implemented. 
 
@@ -655,9 +657,6 @@ class lightsource_gym(object):
         self.thin_rate = thin_rate
         self.Nwarmup = Nwarmup
 
-        #---- Number of objects should have been already determined via optimal step search
-        assert self.d is not None
-
         #---- Min flux
         if f_lim_default:
             self.f_lim = mag2flux(self.mB - 1.) * self.flux_to_count
@@ -669,6 +668,7 @@ class lightsource_gym(object):
             print "Use found seeds for inference."
             q_model_0 = self.q_seed
         self.Nobjs = q_model_0.shape[0]
+        self.d = int(np.prod(q_model_0.shape))
         q_model_0 =  q_model_0.reshape((self.d,))# Flatten 
 
         #---- Allocate storage for variables being inferred.
