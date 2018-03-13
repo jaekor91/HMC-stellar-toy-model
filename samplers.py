@@ -63,8 +63,16 @@ class lightsource_gym(object):
         if return_data:
             return data
         else:
-            self.D = data
+            self.D = data            
 
+
+    def compute_factors(self):
+        """
+        Compute constant factors that are useful RHMC_diag method.
+        """
+        self.factor0, self.factor1, self.factor2 = factors(self.num_rows, self.num_cols, self.num_rows/2., self.num_cols/2., self.PSF_FWHM_pix)
+
+        return
 
     def dVdq_single(self, q_single, model_data, f_only=True, return_all=False):
         """
@@ -574,7 +582,7 @@ class lightsource_gym(object):
 
         Random trajectory length is used with steps ~ [steps_min, steps_max].
         """
-        
+
         #---- Set inference variables as provided by the user. 
         assert Nchain == 1 # Currently we do not support any other.
         self.Nchain = Nchain
