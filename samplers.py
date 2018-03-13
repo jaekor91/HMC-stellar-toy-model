@@ -589,21 +589,52 @@ class lightsource_gym(object):
 
         return M
 
-    def F(self, f):
+    def F(self, f, DFdf=False):
         """
         An approximate single star dVdxx used for RHMC_diag. 
         """
-        return max(f * self.factor1, self.factor2 * f**2 / self.B_count)
+        if DFdf:
+            x1 = f * self.factor1
+            x2 = self.factor2 * f**2 / self.B_count
+            if x1 > x2:
+                return x1, self.factor1
+            else:
+                return x2, x2 / f
+        else:
+            return max(f * self.factor1, self.factor2 * f**2 / self.B_count)
 
 
-    def G(self, f):
+    def G(self, f, DGdf = False):
         """
         An approximate single star dVdff used for RHMC_diag. 
 
         If G is small, then the corresponding mass matrix element is small, 
         which means the sampled momentum is small.
         """
-        return max(1./f, self.factor0 / self.B_count)
+        if DGdf:
+            x1 = 1./f
+            x2 = self.factor0 / self.B_count
+            if x1 > x2:
+                return x1, -1./f**2
+            else:
+                return x2, 0.
+        else:
+            return max(1./f, self.factor0 / self.B_count)
+
+    def dlnDetdq(self, q):
+        """
+        1/2 times Derivative of log determinant of mass matrix computed at q,
+        for diagonal RHMC.
+        """
+        dlnDetdq = np.zeros_like(q)
+        Nobjs = int(q.shape[0]) //3
+        for i in xrange(Nobjs): # For each star
+            f = q[3 * i] # Flux of the star.
+            G, dGdf = self.G(f, dGdf=True)
+            F, dFdf = self.F(f, dFdf=True)
+            M[3 * i] = 0.5 * (dGdf / G + 2 * dFdf / F) 
+
+        return dlnDetdq
 
 
     def RHMC_random_diag(self, q_model_0=None, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
@@ -661,7 +692,7 @@ class lightsource_gym(object):
             self.q_chain[m, 0, :] = q_model_0
             # self.p_chain[m, 0, :] = self.p_sample()[0]
             # self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
-            self.E_chain[m, 0, 0] = self.E(q_initial, p_initial, mass_matrix)
+            self.E_chain[m, 0, 0] = self.E(q_initial, p_initial, M)
             self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
             E_previous = self.E_chain[m, 0, 0]
             q_tmp = q_initial
@@ -671,20 +702,23 @@ class lightsource_gym(object):
                 q_initial = q_tmp
 
                 # Resample moementum
-                p_tmp = self.p_sample()
+                M = self.mass_matrix(q_initial)
+                p_tmp = self.p_sample() * np.sqrt(M)
 
                 # Compute E and dE and save
-                E_initial = self.E(q_tmp, p_tmp)
+                E_initial = self.E(q_tmp, p_tmp, M)
                 self.E_chain[m, i, 0] = E_initial
                 self.dE_chain[m, i, 0] = E_initial - E_previous                    
 
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-                p_half = p_tmp - self.dt * self.dVdq(q_tmp) / 2. # First half step
+                p_half = p_tmp - dt_global/2. * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) # First half step
                 iflip = np.zeros(self.d, dtype=bool) # Flip array.                
                 for _ in xrange(steps_sample): 
                     flip = False
-                    q_tmp = q_tmp + self.dt * p_half
+                    M = self.mass_matrix(q_tmp) # Compute the mass matrix at the current position.
+                    q_tmp = q_tmp + dt_global * p_half / M # Update the current position.
+
                     # We only consider constraint in the flux direction.
                     # If any of the flux is below the limiting point, then change the momentum direction
                     for l in xrange(self.Nobjs):
@@ -693,21 +727,22 @@ class lightsource_gym(object):
                             flip = True
                     if flip: # If fix due to constraint.
                         p_half_tmp = -p_half[iflip] # Flip the direction.
-                        p_half = p_half - self.dt * self.dVdq(q_tmp) # Update as usual
+                        p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) # Update as usual
                         p_half[iflip] = p_half_tmp # Make correction
                     else:
-                        p_half = p_half - self.dt * self.dVdq(q_tmp) # If no correction, then regular update.
+                        p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) # If no correction, then regular update.
 
                 # Final half step correction
                 if flip:
                     p_half_tmp = p_half[iflip] # Save 
-                    p_half = p_half + self.dt * self.dVdq(q_tmp) / 2.# Update as usual 
+                    p_half = p_half + dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp))/ 2.# Update as usual 
                     p_half[iflip] = p_half_tmp # Make correction                    
                 else:
-                    p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
+                    p_tmp = p_half + dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) / 2. # Account for the overshoot in the final run.
 
                 # Compute final energy and save.
-                E_final = self.E(q_tmp, p_tmp)
+                M = self.mass_matrix(q_tmp)
+                E_final = self.E(q_tmp, p_tmp, M)
                     
                 # With correct probability, accept or reject the last proposal.
                 dE = E_final - E_initial
