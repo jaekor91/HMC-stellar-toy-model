@@ -593,7 +593,7 @@ class lightsource_gym(object):
         """
         An approximate single star dVdxx used for RHMC_diag. 
         """
-        return np.min(f * self.factor1, self.factor2 * f**2 / self.B_count)
+        return np.max(f * self.factor1, self.factor2 * f**2 / self.B_count)
 
 
     def G(self, f):
