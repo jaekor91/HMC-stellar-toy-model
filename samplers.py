@@ -653,11 +653,13 @@ class lightsource_gym(object):
         1/2 times Derivative of kinetic energy term.
         """
         dpMpdq = np.zeros_like(q)
-        Nobjs = int(q.shape[0]) //3
+        Nobjs = int(q.shape[0]) // 3
         for i in xrange(Nobjs): # For each star
             f = q[3 * i] # Flux of the star.
+            pf, px, py = p[3 * i : 3 * (i+1)]
             G, dGdf = self.G(f, dGdf=True)
-            dlnDetdq[3 * i] = - 0.5 * (dGdf * p**2 / G**2)
+            F, dFdf = self.F(f, dFdf=True)           
+            dpMpdq[3 * i] = - 0.5 * (dGdf * pf**2 / G**2 + (px**2 + py**2) * dFdf / F**2)
 
         return dpMpdq
 
@@ -738,7 +740,7 @@ class lightsource_gym(object):
 
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-                p_half = p_tmp - dt_global/2. * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) # First half step
+                p_half = p_tmp - dt_global/2. * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp) + self.dpMpdq(q_tmp, p_tmp)) # First half step
                 iflip = np.zeros(self.d, dtype=bool) # Flip array.                
                 for _ in xrange(steps_sample): 
                     flip = False
@@ -753,18 +755,18 @@ class lightsource_gym(object):
                             flip = True
                     if flip: # If fix due to constraint.
                         p_half_tmp = -p_half[iflip] # Flip the direction.
-                        p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) # Update as usual
+                        p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)+ self.dpMpdq(q_tmp, p_tmp)) # Update as usual
                         p_half[iflip] = p_half_tmp # Make correction
                     else:
-                        p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) # If no correction, then regular update.
+                        p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)+ self.dpMpdq(q_tmp, p_tmp)) # If no correction, then regular update.
 
                 # Final half step correction
                 if flip:
                     p_half_tmp = p_half[iflip] # Save 
-                    p_half = p_half + dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp))/ 2.# Update as usual 
+                    p_half = p_half + dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)+ self.dpMpdq(q_tmp, p_tmp))/ 2.# Update as usual 
                     p_half[iflip] = p_half_tmp # Make correction                    
                 else:
-                    p_tmp = p_half + dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)) / 2. # Account for the overshoot in the final run.
+                    p_tmp = p_half + dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)+ self.dpMpdq(q_tmp, p_tmp)) / 2. # Account for the overshoot in the final run.
 
                 # Compute final energy and save.
                 M = self.mass_matrix(q_tmp)
