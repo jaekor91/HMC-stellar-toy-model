@@ -593,15 +593,22 @@ class lightsource_gym(object):
         """
         An approximate single star dVdxx used for RHMC_diag. 
         """
+        x1 = f * self.factor1
         if dFdf:
-            x1 = f * self.factor1
-            x2 = self.factor2 * f**2 / self.B_count
-            if x1 > x2:
-                return x2, x2 / f                
-            else:
-                return x1, self.factor1                
+            return x1, self.factor1
         else:
-            return min(f * self.factor1, self.factor2 * f**2 / self.B_count)
+            return x1
+
+
+        # if dFdf:
+        #     x1 = f * self.factor1
+        #     x2 = self.factor2 * f**2 / self.B_count
+        #     if x1 > x2:
+        #         return x2, x2 / f                
+        #     else:
+        #         return x1, self.factor1                
+        # else:
+        #     return min(f * self.factor1, self.factor2 * f**2 / self.B_count)
 
 
     def G(self, f, dGdf = False):
@@ -611,15 +618,20 @@ class lightsource_gym(object):
         If G is small, then the corresponding mass matrix element is small, 
         which means the sampled momentum is small.
         """
-        if dGdf:
-            x1 = 1./f
-            x2 = self.factor0 / self.B_count
-            if x1 > x2:
-                return x1, -1./f**2
-            else:
-                return x2, 0.
+        x1 = 1./f
+        if dGdf: 
+            return x1, -1/f**2
         else:
-            return max(1./f, self.factor0 / self.B_count)
+            return x1
+        # if dGdf:
+        #     x1 = 1./f
+        #     x2 = self.factor0 / self.B_count
+        #     if x1 > x2:
+        #         return x1, -1./f**2
+        #     else:
+        #         return x2, 0.
+        # else:
+        #     return max(1./f, self.factor0 / self.B_count)
 
     def dlnDetdq(self, q):
         """
@@ -635,6 +647,20 @@ class lightsource_gym(object):
             dlnDetdq[3 * i] = 0.5 * (dGdf / G + 2 * dFdf / F) 
 
         return dlnDetdq
+
+    def dpMpdq(self, q, p):
+        """
+        1/2 times Derivative of kinetic energy term.
+        """
+        dpMpdq = np.zeros_like(q)
+        Nobjs = int(q.shape[0]) //3
+        for i in xrange(Nobjs): # For each star
+            f = q[3 * i] # Flux of the star.
+            G, dGdf = self.G(f, dGdf=True)
+            dlnDetdq[3 * i] = - 0.5 * (dGdf * p**2 / G**2)
+
+        return dpMpdq
+
 
 
     def RHMC_random_diag(self, q_model_0, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
