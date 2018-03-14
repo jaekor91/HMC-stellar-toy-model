@@ -597,11 +597,11 @@ class lightsource_gym(object):
             x1 = f * self.factor1
             x2 = self.factor2 * f**2 / self.B_count
             if x1 > x2:
-                return x1, self.factor1
+                return x2, x2 / f                
             else:
-                return x2, x2 / f
+                return x1, self.factor1                
         else:
-            return max(f * self.factor1, self.factor2 * f**2 / self.B_count)
+            return min(f * self.factor1, self.factor2 * f**2 / self.B_count)
 
 
     def G(self, f, dGdf = False):
