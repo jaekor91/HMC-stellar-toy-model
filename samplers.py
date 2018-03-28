@@ -666,7 +666,7 @@ class lightsource_gym(object):
 
 
     def RHMC_random_diag(self, q_model_0, Nchain=1, Niter=1000, thin_rate=0, Nwarmup=0, steps_min=10, steps_max = 50,\
-        f_lim = 0., f_lim_default = False, dt_global=1e-2):
+        f_lim = 0., f_lim_default = False, dt_global=1e-2, save_traj=False):
         """
         Initial seed is required. 
 
@@ -684,6 +684,12 @@ class lightsource_gym(object):
         self.Niter = Niter
         self.thin_rate = thin_rate
         self.Nwarmup = Nwarmup
+
+        #---- If asked to save trajectory
+        if save_traj: 
+            self.qs = []
+            self.Vs = []
+            self.Ts = []
 
         #---- Min flux
         if f_lim_default:
@@ -724,6 +730,12 @@ class lightsource_gym(object):
             self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
             E_previous = self.E_chain[m, 0, 0]
             q_tmp = q_initial
+
+            if save_traj:
+                self.qs.append(np.array([q_initial]))
+                self.Vs.append(np.array([self.V(q_initial)]))
+                self.Ts.append(np.array([self.K(p_initial, M)]))
+
             #---- Looping over iterations
             for i in xrange(1, self.Niter+1, 1):
                 #---- Initial
@@ -738,8 +750,19 @@ class lightsource_gym(object):
                 self.E_chain[m, i, 0] = E_initial
                 self.dE_chain[m, i, 0] = E_initial - E_previous                    
 
+
                 #---- Looping over a random number of steps
                 steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+                if save_traj:
+                    qs_tmp = np.zeros((steps_sample+1, 3))
+                    Vs_tmp = np.zeros(steps_sample+1)
+                    Ts_tmp = np.zeros(steps_sample+1)
+                    qs_tmp[0] = q_tmp
+                    Vs_tmp[0] = self.V(q_tmp)
+                    M = self.mass_matrix(q_tmp)
+                    Ts_tmp[0] = self.K(p_tmp, M)
+                    idx = 1
+
                 p_half = p_tmp - dt_global/2. * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp) + self.dpMpdq(q_tmp, p_tmp)) # First half step
                 iflip = np.zeros(self.d, dtype=bool) # Flip array.                
                 for _ in xrange(steps_sample): 
@@ -759,6 +782,14 @@ class lightsource_gym(object):
                         p_half[iflip] = p_half_tmp # Make correction
                     else:
                         p_half = p_half - dt_global * (self.dVdq(q_tmp) + self.dlnDetdq(q_tmp)+ self.dpMpdq(q_tmp, p_tmp)) # If no correction, then regular update.
+
+                    if save_traj:
+                        qs_tmp[idx] = q_tmp
+                        Vs_tmp[idx] = self.V(q_tmp)
+                        M = self.mass_matrix(q_tmp)
+                        Ts_tmp[idx] = self.K(p_tmp, M)
+                        idx += 1
+
 
                 # Final half step correction
                 if flip:
@@ -782,6 +813,12 @@ class lightsource_gym(object):
                 else: # Otherwise, proposal rejected.
                     self.q_chain[m, i, :] = q_initial # save the old point
                     q_tmp = q_initial
+
+                if save_traj:
+                    self.qs.append(qs_tmp)
+                    self.Vs.append(Vs_tmp)
+                    self.Ts.append(Ts_tmp)
+
 
             print "Chain %d Acceptance rate: %.2f%%" % (m, np.sum(self.A_chain[m, :] * 100)/float(self.Niter))
 
@@ -1111,15 +1148,6 @@ class lightsource_gym(object):
             f, x, y = objs_flat[3*i:3*i+3]
             Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
         return -np.sum(self.D * np.log(Lambda) - Lambda)
-
-    def K(self, p):
-        """
-        The user supplies potential energy and its gradient.
-        User also sets the form of kinetic distribution.
-        Kinetic energy -ln P(p)
-        """
-        # return np.dot(p, np.dot(self.inv_cov_p, p)) / 2. 
-        return np.dot(p, p) / 2. # We assume identity covariance.
 
     def E(self, q, p, mass_matrix=None):
         """
