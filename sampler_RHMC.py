@@ -143,7 +143,6 @@ class single_gym(base_class):
 
 		# ---- Global variables
 		self.Nsteps = Nsteps
-		self.dt = dt
 
 		# ---- Place holder for various variables. 
 		self.q_chain = None
