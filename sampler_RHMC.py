@@ -177,7 +177,7 @@ class base_class(object):
 		"""
 		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
 		for i in range(self.Nobjs): # Add every object.
-			f, x, y = objs_flat[3*i:3*i+3]
+			f, x, y = q[3*i:3*i+3]
 			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
 		return np.sum(Lambda - self.D * np.log(Lambda))
 
@@ -253,7 +253,7 @@ class single_gym(base_class):
 		p_initial = self.u_sample(self.d) / np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
-		# self.V_chain[0] = self.V(q_initial)
+		self.V_chain[0] = self.V(q_initial)
 		# self.T_chain[0] = self.T(q_initial, p_initial)
 		# self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
