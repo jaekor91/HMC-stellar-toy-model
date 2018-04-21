@@ -3,11 +3,13 @@
 # inference problem.
 # - The truth image based on the user input
 # - Constants including experimental condition
-# Single source inference class is used to achieve the following.
-# - Inference is possible even when the initial guess is orders of mangitude off from the true answer.
+# Single trajectory class is used to achieve the following.
 # - Show that the energy is conserved throughout its trajectory.
 # - Show that the path is reversible as long as the base step size is made small.
-# Multiple source class: 
+# - Multiple sources can be included.
+# General inference class: 
+# - Inference is possible even when the initial guess is orders of mangitude off from the true answer.
+# - Perform inference of a single source with varying magnitudes.
 # - Perform inference with many sources with large dynamic range [7, 22] magnitude!
 
 # Conventions:
