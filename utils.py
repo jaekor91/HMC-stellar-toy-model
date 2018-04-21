@@ -650,6 +650,15 @@ def plot_range(x, factor = 2.):
 
 
 def factors(num_rows, num_cols, x, y, PSF_FWHM_pix):
+    """
+    Test of constancy:
+    dx = np.random.random() * 2 -1
+    dy = np.random.random() * 2 -1
+
+    for _ in range(100):
+        print factors(64, 64, 32 + dx , 32+dy)
+    """
+
     # Compute f, x, y gradient for each object
     lv = np.arange(0, num_rows)
     mv = np.arange(0, num_cols)
