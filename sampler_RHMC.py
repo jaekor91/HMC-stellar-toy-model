@@ -139,6 +139,21 @@ class base_class(object):
 
 		return q.reshape((q.size, ))
 
+	def H(self, q):
+		"""
+		Diagonal matrix that corresponds to q in pi(p|q) = Norm(0, H)
+
+		q has the dimension (Nobjs * 3) where each chunk of three variable
+		corresponds to f, x, y
+		"""
+		H_diag = np.zeros(q.size)
+		for i in xrange(self.Nobjs):
+			f, x, y = q[3 * i: 3 * (i + 1)]
+			H[3 * i] = self.H_ff(f)
+			H[3 * i + 1] = H[3 * i + 2] = self.H_xx(f)
+
+		return H_diag
+
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
 		"""
@@ -170,7 +185,7 @@ class single_gym(base_class):
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
-		q_model_0 =  format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
+		q_model_0 =  self.format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
 
 		#---- Allocate storage for variables being inferred.
 		self.q_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
