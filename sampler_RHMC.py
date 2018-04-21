@@ -123,11 +123,11 @@ class base_class(object):
 
 		return num_rows, num_cols, flux_to_count, PSF_FWHM_pix, B_count, arcsec_to_pix
 
-    def p_sample(self, d):
-        """
-        Return a random sample from a unit multi-variate normal of dimension D.
-        """
-        return np.random.randn(d)
+	def p_sample(self, d):
+		"""
+		Return a random sample from a unit multi-variate normal of dimension D.
+		"""
+		return np.random.randn(d)
 
 
 class single_gym(base_class):
