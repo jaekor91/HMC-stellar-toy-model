@@ -129,6 +129,15 @@ class base_class(object):
 		"""
 		return np.random.randn(d)
 
+	def format_q(self, q):
+		"""
+		Given an input of shape ((Nobjs, 3)) with f, x, y for each row, output
+		m, x, y array of shape ((Nobjs * 3))
+		"""
+		for i in range(q.shape[0]):
+			q[i, 0] = self.mag2flux_converter(q[i, 0])
+
+		return q.reshape((q.size, ))
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
@@ -161,7 +170,7 @@ class single_gym(base_class):
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
-		q_model_0 =  q_model_0.reshape((self.Nobjs * 3,))# Flatten 
+		q_model_0 =  format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
 
 		#---- Allocate storage for variables being inferred.
 		self.q_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
@@ -178,9 +187,9 @@ class single_gym(base_class):
 		p_initial = self.u_sample() / np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
-		self.E_chain[0] =
-		self.V_chain =
-		self.T_chain =
+		self.V_chain[0] = self.V(q_initial)
+		self.T_chain[0] = self.T(q_initial, p_initial)
+		self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
 		# E_previous = self.E_chain[m, 0, 0]
 		# q_tmp = q_initial
