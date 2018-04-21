@@ -99,5 +99,6 @@ ax2.plot(ms, dts_xy_bright * dt_xy_coeff, c="red")
 ax2.plot(ms, dts_xy_faint * dt_xy_coeff, c="blue")
 ax2.set_ylim([0., 0.8])
 
-plt.show()
+# plt.show()
+plt.savefig("one-star-best-dt.png", dpi=200, bbox_inches ="tight")
 plt.close()
