@@ -123,7 +123,7 @@ class base_class(object):
 
 		return num_rows, num_cols, flux_to_count, PSF_FWHM_pix, B_count, arcsec_to_pix
 
-	def p_sample(self, d):
+	def u_sample(self, d):
 		"""
 		Return a random sample from a unit multi-variate normal of dimension D.
 		"""
@@ -170,17 +170,17 @@ class single_gym(base_class):
 		self.V_chain = np.zeros(self.Nsteps+1)
 		self.T_chain = np.zeros(self.Nsteps+1)
 
-		# #---- Loop over each step. 
-		# # Recall the 0-index corresponds to the intial model.
-		# # Set the initial values.
-		# q_initial = q_model_0
-		# H_diag = self.H(q_initial) # 
-		# p_initial = self.p_sample() / np.sqrt(H_diag)
-		# self.q_chain[0] = q_initial
-		# self.p_chain[0] = p_initial
-		# self.E_chain[0] =
-		# self.V_chain =
-		# self.T_chain =
+		#---- Loop over each step. 
+		# Recall the 0-index corresponds to the intial model.
+		# Set the initial values.
+		q_initial = q_model_0
+		H_diag = self.H(q_initial) # 
+		p_initial = self.u_sample() / np.sqrt(H_diag)
+		self.q_chain[0] = q_initial
+		self.p_chain[0] = p_initial
+		self.E_chain[0] =
+		self.V_chain =
+		self.T_chain =
 
 		# E_previous = self.E_chain[m, 0, 0]
 		# q_tmp = q_initial
