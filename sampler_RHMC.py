@@ -118,6 +118,12 @@ class base_class(object):
 
 		return num_rows, num_cols, flux_to_count, PSF_FWHM_pix, B_count, arcsec_to_pix
 
+    def p_sample(self, d):
+        """
+        Return a random sample from a unit multi-variate normal of dimension D.
+        """
+        return np.random.randn(d)
+
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 1.):
@@ -126,9 +132,13 @@ class single_gym(base_class):
 		- Nsteps: Number of steps to be taken.
 		- dt: Global time step size factor.
 		"""
+		# ---- Call the base class constructor
+		base_class.__init__(self)
 
+		# Add global time step variable.
 		self.Nsteps = Nsteps
 		self.dt = dt
+
 		# ---- Place holder for various variables. 
 		self.q_chain = None
 		self.p_chain = None
@@ -137,4 +147,91 @@ class single_gym(base_class):
 		self.T_chain = None
 
 		return
-		
+
+	def HMC_random(self, q_model_0=None, f_pos=False):
+		"""
+		Perform Bayesian inference with HMC with the initial model given as q_model_0.
+		f_pos: Enforce the condition that total flux counts for individual sources be positive.
+		"""
+
+		#---- Number of objects should have been already determined via optimal step search
+		self.Nobjs = q_model_0.shape[0]
+		q_model_0 =  q_model_0.reshape((self.Nobjs * 3,))# Flatten 
+
+		#---- Allocate storage for variables being inferred.
+		self.q_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
+		self.p_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
+		self.E_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
+		self.V_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
+		self.T_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
+
+		#---- Loop over each step. 
+		# Recall the 0-index corresponds to the intial model.
+		# Set the initial values.
+		q_initial = q_model_0
+		p_initial = self.p_sample()
+		self.q_chain[m, 0, :] = q_model_0
+		self.p_chain[m, 0, :] = self.p_sample()[0]
+		self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
+		self.E_chain[m, 0, 0] = self.E(q_initial, p_initial)
+		self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
+		# E_previous = self.E_chain[m, 0, 0]
+		# q_tmp = q_initial
+		# #---- Looping over iterations
+		# for i in xrange(1, self.Nsteps+1, 1):
+		# 	#---- Initial
+		# 	q_initial = q_tmp
+
+		# 	# Resample moementum
+		# 	p_tmp = self.p_sample()
+
+		# 	# Compute E and dE and save
+		# 	E_initial = self.E(q_tmp, p_tmp)
+		# 	self.E_chain[m, i, 0] = E_initial
+		# 	self.dE_chain[m, i, 0] = E_initial - E_previous                    
+
+		# 	#---- Looping over a random number of steps
+		# 	steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
+		# 	p_half = p_tmp - self.dt * self.dVdq(q_tmp) / 2. # First half step
+		# 	iflip = np.zeros(self.d, dtype=bool) # Flip array.                
+		# 	for _ in xrange(steps_sample): 
+		# 		flip = False
+		# 		q_tmp = q_tmp + self.dt * p_half
+		# 		# We only consider constraint in the flux direction.
+		# 		# If any of the flux is below the limiting point, then change the momentum direction
+		# 		for l in xrange(self.Nobjs):
+		# 			if q_tmp[3 * l] < self.f_lim:
+		# 				iflip[3 * l] = True
+		# 				flip = True
+		# 		if flip: # If fix due to constraint.
+		# 			p_half_tmp = -p_half[iflip] # Flip the direction.
+		# 			p_half = p_half - self.dt * self.dVdq(q_tmp) # Update as usual
+		# 			p_half[iflip] = p_half_tmp # Make correction
+		# 		else:
+		# 			p_half = p_half - self.dt * self.dVdq(q_tmp) # If no correction, then regular update.
+
+		# 	# Final half step correction
+		# 	if flip:
+		# 		p_half_tmp = p_half[iflip] # Save 
+		# 		p_half = p_half + self.dt * self.dVdq(q_tmp) / 2.# Update as usual 
+		# 		p_half[iflip] = p_half_tmp # Make correction                    
+		# 	else:
+		# 		p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
+
+		# 	# Compute final energy and save.
+		# 	E_final = self.E(q_tmp, p_tmp)
+				
+		# 	# With correct probability, accept or reject the last proposal.
+		# 	dE = E_final - E_initial
+		# 	E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
+		# 	lnu = np.log(np.random.random(1))        
+		# 	if (dE < 0) or (lnu < -dE): # If accepted.
+		# 		self.A_chain[m, i-1, 0] = 1
+		# 		self.q_chain[m, i, :] = q_tmp # save the new point
+		# 	else: # Otherwise, proposal rejected.
+		# 		self.q_chain[m, i, :] = q_initial # save the old point
+		# 		q_tmp = q_initial
+
+		# return
+
+		return
