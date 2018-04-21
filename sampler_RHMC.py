@@ -148,11 +148,23 @@ class base_class(object):
 		"""
 		H_diag = np.zeros(q.size)
 		for i in xrange(self.Nobjs):
-			f, x, y = q[3 * i: 3 * (i + 1)]
-			H[3 * i] = self.H_ff(f)
-			H[3 * i + 1] = H[3 * i + 2] = self.H_xx(f)
+			f = q[3 * i]
+			H_diag[3 * i] = self.H_ff(f)
+			H_diag[3 * i + 1] = H_diag[3 * i + 2] = self.H_xx(f)
 
 		return H_diag
+
+	def H_ff(self, f):
+		"""
+		Given the object flux, returns the approximate H matrix element corresponding to flux. 
+		"""
+		return self.g_ff * np.min([1./f, self.g0 / self.B_count])
+
+	def H_xx(self, f):
+		"""
+		Given the object flux, returns the approximate H matrix element corresponding to position. 
+		"""
+		return self.g_xx * np.min([f * self.g1, f**2 * self.g2 / self.B_count])
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
@@ -185,6 +197,7 @@ class single_gym(base_class):
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
+		self.d = self.Nobjs * 3 # Total dimension of inference
 		q_model_0 =  self.format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
 
 		#---- Allocate storage for variables being inferred.
@@ -199,12 +212,12 @@ class single_gym(base_class):
 		# Set the initial values.
 		q_initial = q_model_0
 		H_diag = self.H(q_initial) # 
-		p_initial = self.u_sample() / np.sqrt(H_diag)
+		p_initial = self.u_sample(self.d) / np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
-		self.V_chain[0] = self.V(q_initial)
-		self.T_chain[0] = self.T(q_initial, p_initial)
-		self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
+		# self.V_chain[0] = self.V(q_initial)
+		# self.T_chain[0] = self.T(q_initial, p_initial)
+		# self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
 		# E_previous = self.E_chain[m, 0, 0]
 		# q_tmp = q_initial
