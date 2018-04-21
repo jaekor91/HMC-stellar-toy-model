@@ -181,6 +181,18 @@ class base_class(object):
 			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
 		return np.sum(Lambda - self.D * np.log(Lambda))
 
+	def T(self, p, H_diag):
+	    """
+	    Gaussian potential energy
+	    """
+	    # Exponential argument term
+	    term1 = np.sum(p**2 / H_diag)
+
+	    # Determinant term. # Note that the flux could be negative so the absolute sign is necessary.
+	    term2 = np.log(np.abs(np.prod(H_diag)))
+
+	    return (term1 + term2) / 2.
+
 	# def E(self, q, p, mass_matrix=None):
 	#     """
 	#     Kinetic plus potential energy    
@@ -192,17 +204,6 @@ class base_class(object):
 
 	#     return self.V(q) + self.K(p, mass_matrix)
 
-	# def K(self, p, mass_matrix=None):
-	#     """
-	#     The user supplies potential energy and its gradient.
-	#     User also sets the form of kinetic distribution.
-	#     Kinetic energy -ln P(p)
-	#     """
-	#     # return np.dot(p, np.dot(self.inv_cov_p, p)) / 2. 
-	#     if mass_matrix is None:
-	#         return np.dot(p, p) / 2. # We assume identity covariance.
-	#     else: # Assume diagonal mass matrix. Note there is the additional term corresponding to log det.
-	#         return (np.sum(p**2 / mass_matrix) + np.log(np.abs(np.prod(mass_matrix)))) / 2.
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
@@ -254,7 +255,7 @@ class single_gym(base_class):
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
 		self.V_chain[0] = self.V(q_initial)
-		# self.T_chain[0] = self.T(q_initial, p_initial)
+		self.T_chain[0] = self.T(p_initial, H_diag)
 		# self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
 		# E_previous = self.E_chain[m, 0, 0]
