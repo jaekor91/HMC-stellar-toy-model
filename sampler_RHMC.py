@@ -10,6 +10,12 @@
 # Multiple source class: 
 # - Perform inference with many sources with large dynamic range [7, 22] magnitude!
 
+# Conventions:
+# - All flux are in units of counts. The user only deals with magnitudes and the magitude to
+# flux (in counts) conversion is done automatically and internally.
+# - All object inputs are in the form (Nobjs, 3) with each row corresponding to an object 
+# and its mag, x, y information.
+
 from utils import *
 
 class base_class(object):
@@ -28,11 +34,14 @@ class base_class(object):
         self.num_rows, self.num_cols, self.flux_to_count, self.PSF_FWHM_pix, \
             self.B_count, self.arcsec_to_pix = self.default_exp_setup()
 
+        # Compute factors to be used repeatedly.
+        self.compute_factors()
+
         return
 
     def gen_mock_data(self, q_true=None, return_data = False):
         """
-        Given the properties of mock q_true (Nobjs, 3) with f, x, y for each, 
+        Given the properties of mock q_true (Nobjs, 3) with mag, x, y for each, 
         generate a mock data image. The following conditions must be met.
         - An object must be within the image.
 
@@ -43,8 +52,8 @@ class base_class(object):
 
         # Add one star at a time.
         for i in xrange(q_true.shape[0]):
-            f, x, y = q_true[i]
-            data += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM = self.PSF_FWHM_pix)
+            mag, x, y = q_true[i]
+            data += self.mag2flux_converter(mag) * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM = self.PSF_FWHM_pix)
 
         # Poission realization D of the underlying truth D0
         data = poisson_realization(data)
@@ -53,6 +62,13 @@ class base_class(object):
             return data
         else:
             self.D = data            
+
+    def mag2flux_converter(self, mag):
+    	"""
+		Given user input magnitude convert it to flux counts.
+    	"""
+
+    	return mag2flux(mag) * self.flux_to_count
 
 
     def compute_factors(self):
@@ -95,3 +111,4 @@ class base_class(object):
         num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
 
         return num_rows, num_cols, flux_to_count, PSF_FWHM_pix, B_count, arcsec_to_pix
+
