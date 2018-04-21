@@ -25,7 +25,7 @@
 from utils import *
 
 class base_class(object):
-	def __init__(self):
+	def __init__(self, dt = 1., g_xx = 10, g_ff = 10):
 		"""
 		Sets default experimental or observational values, which can be changed later.
 		"""
@@ -39,6 +39,11 @@ class base_class(object):
 		# Default experimental set-up
 		self.num_rows, self.num_cols, self.flux_to_count, self.PSF_FWHM_pix, \
 			self.B_count, self.arcsec_to_pix = self.default_exp_setup()
+
+		# Global time step / Factors that appear in H computation.
+		self.dt = dt
+		self.g_xx = g_xx
+		self.g_ff = g_ff
 
 		# Compute factors to be used repeatedly.
 		self.compute_factors()
@@ -126,16 +131,17 @@ class base_class(object):
 
 
 class single_gym(base_class):
-	def __init__(self, Nsteps = 100, dt = 1.):
+	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
 		"""
 		Single trajectory simulation.
 		- Nsteps: Number of steps to be taken.
 		- dt: Global time step size factor.
+		- g_xx, g_ff: Factors that scale the momenta.
 		"""
 		# ---- Call the base class constructor
-		base_class.__init__(self)
+		base_class.__init__(self, dt = 1., g_xx = 10, g_ff = 10)
 
-		# Add global time step variable.
+		# ---- Global variables
 		self.Nsteps = Nsteps
 		self.dt = dt
 
@@ -148,7 +154,7 @@ class single_gym(base_class):
 
 		return
 
-	def HMC_random(self, q_model_0=None, f_pos=False):
+	def run_single(self, q_model_0=None, f_pos=False):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
@@ -159,22 +165,24 @@ class single_gym(base_class):
 		q_model_0 =  q_model_0.reshape((self.Nobjs * 3,))# Flatten 
 
 		#---- Allocate storage for variables being inferred.
-		self.q_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
-		self.p_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
-		self.E_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
-		self.V_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
-		self.T_chain = np.zeros((self.Nsteps, self.Nobjs * 3))
+		self.q_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
+		self.p_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
+		self.E_chain = np.zeros(self.Nsteps+1)
+		self.V_chain = np.zeros(self.Nsteps+1)
+		self.T_chain = np.zeros(self.Nsteps+1)
 
-		#---- Loop over each step. 
-		# Recall the 0-index corresponds to the intial model.
-		# Set the initial values.
-		q_initial = q_model_0
-		p_initial = self.p_sample()
-		self.q_chain[m, 0, :] = q_model_0
-		self.p_chain[m, 0, :] = self.p_sample()[0]
-		self.V_chain[m, 0, 0] = self.V(self.q_chain[m, 0, :])
-		self.E_chain[m, 0, 0] = self.E(q_initial, p_initial)
-		self.dE_chain[m, 0, 0] = 0 # Arbitrarily set to zero.
+		# #---- Loop over each step. 
+		# # Recall the 0-index corresponds to the intial model.
+		# # Set the initial values.
+		# q_initial = q_model_0
+		# H_diag = self.H(q_initial) # 
+		# p_initial = self.p_sample() / np.sqrt(H_diag)
+		# self.q_chain[0] = q_initial
+		# self.p_chain[0] = p_initial
+		# self.E_chain[0] =
+		# self.V_chain =
+		# self.T_chain =
+
 		# E_previous = self.E_chain[m, 0, 0]
 		# q_tmp = q_initial
 		# #---- Looping over iterations
