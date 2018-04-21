@@ -166,6 +166,44 @@ class base_class(object):
 		"""
 		return self.g_xx * np.min([f * self.g1, f**2 * self.g2 / self.B_count])
 
+	def V(self, q):
+		"""
+		Negative Poisson log-likelihood given data and model.
+
+		The model is specified by the list of objs, which are provided
+		as a flattened list [Nobjs x 3](e.g., [f1, x1, y1, f2, x2, y2, ...])
+
+		Assume a fixed background.
+		"""
+		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
+		for i in range(self.Nobjs): # Add every object.
+			f, x, y = objs_flat[3*i:3*i+3]
+			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
+		return np.sum(Lambda - self.D * np.log(Lambda))
+
+	# def E(self, q, p, mass_matrix=None):
+	#     """
+	#     Kinetic plus potential energy    
+	#     """
+	#     Nobjs = q.size // 3 # Assume that q is flat.s
+	#     for l in xrange(Nobjs):
+	#         if q[3 * l] < self.f_lim:
+	#             return np.infty
+
+	#     return self.V(q) + self.K(p, mass_matrix)
+
+	# def K(self, p, mass_matrix=None):
+	#     """
+	#     The user supplies potential energy and its gradient.
+	#     User also sets the form of kinetic distribution.
+	#     Kinetic energy -ln P(p)
+	#     """
+	#     # return np.dot(p, np.dot(self.inv_cov_p, p)) / 2. 
+	#     if mass_matrix is None:
+	#         return np.dot(p, p) / 2. # We assume identity covariance.
+	#     else: # Assume diagonal mass matrix. Note there is the additional term corresponding to log det.
+	#         return (np.sum(p**2 / mass_matrix) + np.log(np.abs(np.prod(mass_matrix)))) / 2.
+
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
 		"""
