@@ -176,7 +176,7 @@ class base_class(object):
 
 			return H_diag, H_grad_diag
 
-	def H_ff(self, f, grad=False, fmin=1e-3):
+	def H_ff(self, f, grad=False, fmin=200):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to flux. 
 
@@ -203,7 +203,7 @@ class base_class(object):
 				# Is not affected by the f.
 				return self.g_ff * val2, 0.
 
-	def H_xx(self, f, grad=False, fmin=1e-3):
+	def H_xx(self, f, grad=False, fmin=200):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to position. 
 
@@ -224,7 +224,7 @@ class base_class(object):
 			if val1 < val2:
 				if f_low:
 					return self.g_xx * val1, 0.
-				else
+				else:
 					return self.g_xx * val1, self.g_xx * self.g1				
 			else:
 				if f_low:
