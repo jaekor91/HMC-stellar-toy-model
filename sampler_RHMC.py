@@ -145,6 +145,8 @@ class base_class(object):
 
 		q has the dimension (Nobjs * 3) where each chunk of three variable
 		corresponds to f, x, y
+
+		If grad=True, then retrun gradient respect to flu as well.		
 		"""
 		H_diag = np.zeros(q.size)
 		if not grad:
@@ -172,7 +174,7 @@ class base_class(object):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to flux. 
 
-		If grad=True, then retrun gradien information as well.
+		If grad=True, then retrun gradient respect to flux.
 		"""
 		if not grad:
 			return self.g_ff * np.min([1./f, self.g0 / self.B_count])
@@ -187,6 +189,8 @@ class base_class(object):
 	def H_xx(self, f, grad=False):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to position. 
+
+		If grad=True, then retrun gradient respect to flux.
 		"""
 		if not grad:
 			return self.g_xx * np.min([f * self.g1, f**2 * self.g2 / self.B_count])
@@ -263,6 +267,27 @@ class base_class(object):
 			grad[3*i+1] = -np.sum(rho * (lv - x + 0.5) * PSF) * f / var
 			grad[3*i+2] = -np.sum(rho * (mv - y + 0.5) * PSF) * f / var
 		return grad
+
+	def dVdq_RHMC(self, q, p):
+		"""
+		Second gradient term unique to RHMC.
+		"""
+		grads = np.zeros_like(q)
+
+		# Compute H matrix and their gradients
+		H, H_grad = self.H(q, grad=True)
+
+		# For each object compute the gradient
+		for i in xrange(self.Nobjs):
+			# Quadratic term
+			term1 = (p[3 * i] ** 2) * (-H_grad[3 * i] / H[3 * i]**2)
+
+			# Log Det term
+			term2 = (H_grad[3 * i] / H[3 * i]) + (2 * H_grad[3 * i + 1] / H[3 * i + 1])
+
+			grads[3 * i] = (term1 + term2) / 2.
+
+		return grads
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 10, g_ff = 10):
