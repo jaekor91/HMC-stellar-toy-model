@@ -176,7 +176,7 @@ class base_class(object):
 
 			return H_diag, H_grad_diag
 
-	def H_ff(self, f, grad=False, eps=1e-6):
+	def H_ff(self, f, grad=False, eps=1):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to flux. 
 
@@ -190,9 +190,9 @@ class base_class(object):
 			if val1 < val2:
 				return self.g_ff * val1, -self.g_ff / (np.abs(f) + eps)**2
 			else:
-				return self.g_ff * val2, eps
+				return self.g_ff * val2, 0.
 
-	def H_xx(self, f, grad=False, eps=1e-6):
+	def H_xx(self, f, grad=False, eps=1):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to position. 
 
@@ -446,6 +446,27 @@ class single_gym(base_class):
 
 		# 	# Second half step for momentum
 		# 	p_tmp = p_half - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_half)) / 2.
+
+		#---- Looping over steps
+		# Most naive integrator
+		for i in xrange(1, self.Nsteps+1, 1):
+			# Compute new position
+			H_diag = self.H(q_tmp) 			
+			q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
+
+			# Momentum update
+			p_tmp = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) 			
+
+			if f_pos: # If flux must be kept positive always.
+				iflip = np.zeros(q_tmp_new.size, dtype=bool)
+				for k in xrange(self.Nobjs):
+					f = q_tmp_new[3 * k]
+					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+					if f < 0: 
+						p_tmp[3 * k] *= -1
+
+			# Update the position
+			q_tmp = q_tmp_new
 
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
