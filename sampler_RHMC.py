@@ -289,6 +289,14 @@ class base_class(object):
 
 		return grads
 
+	def display_image(self, show=True, save=False):
+		fig, ax = plt.subplots(1, figsize = (7, 7))
+		ax.imshow(self.D,  interpolation="none", cmap="gray")
+		if show:
+			plt.show()
+		plt.close()
+
+
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 10, g_ff = 10):
 		"""
@@ -351,20 +359,77 @@ class single_gym(base_class):
 		for i in xrange(1, self.Nsteps+1, 1):
 
 			# First half step for momentum
-			p_half = p_tmp - self.dt * (self.dVdq(q_tmp)) / 2. # + self.dVdq_RHMC(q_tmp, p_tmp)
+			p_half = p_tmp - self.dt * (self.dVdq(q_tmp)) / 2.
 
 			# Leap frog step
 			q_tmp = q_tmp + self.dt * p_half # / H_diag
 			# H_diag = self.H(q_tmp) # immediately compute the new H_diag.
 
 			# Second half step for momentum
-			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp)) / 2. # + self.dVdq_RHMC(q_tmp, p_half)
+			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp)) / 2.
 
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
 			self.p_chain[i] = p_tmp
 			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos)
 			self.T_chain[i] = self.T(p_tmp, np.ones_like(p_initial))# H_diag)
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
+				
+		return
+
+	def run_single_RHMC(self, q_model_0=None, f_pos=False):
+		"""
+		Perform Bayesian inference with HMC with the initial model given as q_model_0.
+		f_pos: Enforce the condition that total flux counts for individual sources be positive.
+		"""
+
+		#---- Number of objects should have been already determined via optimal step search
+		self.Nobjs = q_model_0.shape[0]
+		self.d = self.Nobjs * 3 # Total dimension of inference
+		q_model_0 =  self.format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
+
+		#---- Allocate storage for variables being inferred.
+		self.q_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
+		self.p_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
+		self.E_chain = np.zeros(self.Nsteps+1)
+		self.V_chain = np.zeros(self.Nsteps+1)
+		self.T_chain = np.zeros(self.Nsteps+1)
+
+		#---- Loop over each step. 
+		# Recall the 0-index corresponds to the intial model.
+		# Set the initial values.
+		q_initial = q_model_0
+		H_diag = self.H(q_initial, grad=False) # 
+		p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
+		self.q_chain[0] = q_initial
+		self.p_chain[0] = p_initial
+		self.V_chain[0] = self.V(q_initial, f_pos=f_pos)
+		self.T_chain[0] = self.T(p_initial, H_diag)
+		self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
+
+		E_previous = self.E_chain[0]
+		q_tmp = q_initial
+		p_tmp = p_initial
+
+		#---- Looping over steps
+		# Using incorrect and naive leapfrog method
+		for i in xrange(1, self.Nsteps+1, 1):
+
+			# First half step for momentum
+			p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2. 
+
+			# Leap frog step
+			q_tmp = q_tmp + self.dt * p_half / H_diag
+			H_diag = self.H(q_tmp) # immediately compute the new H_diag.
+
+			# Second half step for momentum
+			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_half)) / 2. 
+
+			# Store the variables and energy
+			self.q_chain[i] = q_tmp
+			self.p_chain[i] = p_tmp
+			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos)
+			self.T_chain[i] = self.T(p_tmp, H_diag)
 			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
 				
 		return
