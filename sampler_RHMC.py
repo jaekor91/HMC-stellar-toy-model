@@ -440,13 +440,19 @@ class single_gym(base_class):
 				
 		return
 
-	def diagnostics_first(self, q_true, show=True, save=False, figsize=(12, 12), plot_E = True, plot_V = False, plot_T = False):
+	def diagnostics_first(self, q_true, show=True, save=False, figsize=(12, 12), \
+		plot_E = True, plot_V = False, plot_T = False, plot_flux=True):
 		"""
 		Scatter plot of the first source inference.
 		"""
 		X = self.q_chain[:, 1]
 		Y = self.q_chain[:, 2]
-		F = self.q_chain[:, 0]
+		if plot_flux:
+			F = self.q_chain[:, 0]
+			F_true = self.mag2flux_converter(q_true[0, 0])
+		else:
+			F = self.flux2mag_converter(self.q_chain[:, 0])
+			F_true = q_true[0, 0]
 		E = self.E_chain
 		V = self.V_chain
 		T = self.T_chain
@@ -458,12 +464,12 @@ class single_gym(base_class):
 
 		# --- Flux - Y
 		ax_list[1, 0].scatter(Y, F, c="black", s=1)
-		ax_list[1, 0].axhline(y = self.mag2flux_converter(q_true[0, 0]), c="red", lw=1, ls="--")
+		ax_list[1, 0].axhline(y = F_true, c="red", lw=1, ls="--")
 		ax_list[1, 0].scatter([Y[0]], [F[0]], c="red", s=50, edgecolor="none")
 
 		# --- Flux - X 
 		ax_list[0, 1].scatter(F, X, c="black", s=1)
-		ax_list[0, 1].axvline(x = self.mag2flux_converter(q_true[0, 0]), c="red", lw=1, ls="--")
+		ax_list[0, 1].axvline(x = F_true, c="red", lw=1, ls="--")
 		ax_list[0, 1].scatter([F[0]], [X[0]], c="red", s=50, edgecolor="none")
 
 		# --- Energy plot
