@@ -475,7 +475,6 @@ class single_gym(base_class):
 		# Most naive integrator
 		for i in xrange(1, self.Nsteps+1, 1):
 			# Compute new position
-			H_diag = self.H(q_tmp) 			
 			q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
 
 			# Momentum update
@@ -491,6 +490,7 @@ class single_gym(base_class):
 
 			# Update the position
 			q_tmp = q_tmp_new
+			H_diag = self.H(q_tmp)			
 
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
