@@ -298,7 +298,7 @@ class single_gym(base_class):
 		- g_xx, g_ff: Factors that scale the momenta.
 		"""
 		# ---- Call the base class constructor
-		base_class.__init__(self, dt = 1., g_xx = 10, g_ff = 10)
+		base_class.__init__(self, dt = dt, g_xx = g_xx, g_ff = g_ff)
 
 		# ---- Global variables
 		self.Nsteps = Nsteps
@@ -312,7 +312,7 @@ class single_gym(base_class):
 
 		return
 
-	def run_single(self, q_model_0=None, f_pos=False):
+	def run_single_HMC(self, q_model_0=None, f_pos=False):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
@@ -334,12 +334,12 @@ class single_gym(base_class):
 		# Recall the 0-index corresponds to the intial model.
 		# Set the initial values.
 		q_initial = q_model_0
-		H_diag = self.H(q_initial) # 
-		p_initial = self.u_sample(self.d) / np.sqrt(H_diag)
+		# H_diag = self.H(q_initial, grad=False) # 
+		p_initial = self.u_sample(self.d) #  * np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
 		self.V_chain[0] = self.V(q_initial, f_pos=f_pos)
-		self.T_chain[0] = self.T(p_initial, H_diag)
+		self.T_chain[0] = self.T(p_initial, np.ones_like(p_initial)) # H_diag)
 		self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
 		E_previous = self.E_chain[0]
@@ -351,48 +351,20 @@ class single_gym(base_class):
 		for i in xrange(1, self.Nsteps+1, 1):
 
 			# First half step for momentum
-			p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
+			p_half = p_tmp - self.dt * (self.dVdq(q_tmp)) / 2. # + self.dVdq_RHMC(q_tmp, p_tmp)
 
 			# Leap frog step
-			q_tmp = self.dt * p_half / H_diag
-			H_diag = self.H(q_tmp) # immediately compute the new H_diag.
+			q_tmp = q_tmp + self.dt * p_half # / H_diag
+			# H_diag = self.H(q_tmp) # immediately compute the new H_diag.
 
 			# Second half step for momentum
-			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
+			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp)) / 2. # + self.dVdq_RHMC(q_tmp, p_half)
 
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
 			self.p_chain[i] = p_tmp
 			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos)
-			self.T_chain[i] = self.T(p_tmp, H_diag)
+			self.T_chain[i] = self.T(p_tmp, np.ones_like(p_initial))# H_diag)
 			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
-
-		# 	iflip = np.zeros(self.d, dtype=bool) # Flip array.                
-		# 	for _ in xrange(steps_sample): 
-		# 		flip = False
-		# 		q_tmp = q_tmp + self.dt * p_half
-		# 		# We only consider constraint in the flux direction.
-		# 		# If any of the flux is below the limiting point, then change the momentum direction
-		# 		for l in xrange(self.Nobjs):
-		# 			if q_tmp[3 * l] < self.f_lim:
-		# 				iflip[3 * l] = True
-		# 				flip = True
-		# 		if flip: # If fix due to constraint.
-		# 			p_half_tmp = -p_half[iflip] # Flip the direction.
-		# 			p_half = p_half - self.dt * self.dVdq(q_tmp) # Update as usual
-		# 			p_half[iflip] = p_half_tmp # Make correction
-		# 		else:
-		# 			p_half = p_half - self.dt * self.dVdq(q_tmp) # If no correction, then regular update.
-
-		# 	# Final half step correction
-		# 	if flip:
-		# 		p_half_tmp = p_half[iflip] # Save 
-		# 		p_half = p_half + self.dt * self.dVdq(q_tmp) / 2.# Update as usual 
-		# 		p_half[iflip] = p_half_tmp # Make correction                    
-		# 	else:
-		# 		p_tmp = p_half + self.dt * self.dVdq(q_tmp) / 2. # Account for the overshoot in the final run.
-
-		# 	# Compute final energy and save.
-		# 	E_final = self.E(q_tmp, p_tmp)
 				
 		return
