@@ -193,17 +193,44 @@ class base_class(object):
 		return np.sum(Lambda - self.D * np.log(Lambda))
 
 	def T(self, p, H_diag):
-	    """
-	    Gaussian potential energy
-	    """
-	    # Exponential argument term
-	    term1 = np.sum(p**2 / H_diag)
+		"""
+		Gaussian potential energy
+		"""
+		# Exponential argument term
+		term1 = np.sum(p**2 / H_diag)
 
-	    # Determinant term. # Note that the flux could be negative so the absolute sign is necessary.
-	    term2 = np.log(np.abs(np.prod(H_diag)))
+		# Determinant term. # Note that the flux could be negative so the absolute sign is necessary.
+		term2 = np.log(np.abs(np.prod(H_diag)))
 
-	    return (term1 + term2) / 2.
+		return (term1 + term2) / 2.
 
+	def dVdq(self, q):
+		"""
+		Gradient of Poisson pontential above.    
+		"""
+		# Place holder for the gradient.
+		grad = np.zeros(q.size)
+
+		# Compute the model.
+		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
+		for i in range(self.Nobjs): # Add every object.
+			f, x, y = q[3*i:3*i+3]
+			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
+
+		# Variable to be recycled
+		rho = (self.D/Lambda)-1.# (D_lm/Lambda_lm - 1)
+		# Compute f, x, y gradient for each object
+		lv = np.arange(0, self.num_rows)
+		mv = np.arange(0, self.num_cols)
+		mv, lv = np.meshgrid(lv, mv)
+		var = (self.PSF_FWHM_pix/2.354)**2 
+		for i in range(self.Nobjs):
+			f, x, y = q[3*i:3*i+3]
+			PSF = gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
+			grad[3*i] = -np.sum(rho * PSF) # flux grad
+			grad[3*i+1] = -np.sum(rho * (lv - x + 0.5) * PSF) * f / var
+			grad[3*i+2] = -np.sum(rho * (mv - y + 0.5) * PSF) * f / var
+		return grad
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 10, g_ff = 10):
