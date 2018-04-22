@@ -206,7 +206,7 @@ class base_class(object):
 
 
 class single_gym(base_class):
-	def __init__(self, Nsteps = 100, dt = 1., g_xx = 10, g_ff = 10):
+	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 10, g_ff = 10):
 		"""
 		Single trajectory simulation.
 		- Nsteps: Number of steps to be taken.
@@ -258,24 +258,17 @@ class single_gym(base_class):
 		self.T_chain[0] = self.T(p_initial, H_diag)
 		self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
-		# E_previous = self.E_chain[m, 0, 0]
-		# q_tmp = q_initial
-		# #---- Looping over iterations
+		E_previous = self.E_chain[0]
+		q_tmp = q_initial
+		p_tmp = p_initial
+		# p_half = p_tmp - self.dt * self.dVdq(q_tmp) / 2. # First half step
+
+		# #---- Looping over steps
 		# for i in xrange(1, self.Nsteps+1, 1):
-		# 	#---- Initial
+		# 	#---- Initial point 
 		# 	q_initial = q_tmp
+		# 	H_diag = self.H(q_initial) # 
 
-		# 	# Resample moementum
-		# 	p_tmp = self.p_sample()
-
-		# 	# Compute E and dE and save
-		# 	E_initial = self.E(q_tmp, p_tmp)
-		# 	self.E_chain[m, i, 0] = E_initial
-		# 	self.dE_chain[m, i, 0] = E_initial - E_previous                    
-
-		# 	#---- Looping over a random number of steps
-		# 	steps_sample = np.random.randint(low=steps_min, high=steps_max, size=1)[0]
-		# 	p_half = p_tmp - self.dt * self.dVdq(q_tmp) / 2. # First half step
 		# 	iflip = np.zeros(self.d, dtype=bool) # Flip array.                
 		# 	for _ in xrange(steps_sample): 
 		# 		flip = False
@@ -304,17 +297,4 @@ class single_gym(base_class):
 		# 	# Compute final energy and save.
 		# 	E_final = self.E(q_tmp, p_tmp)
 				
-		# 	# With correct probability, accept or reject the last proposal.
-		# 	dE = E_final - E_initial
-		# 	E_previous = E_initial # Save the energy so that the energy differential can be computed during the next run.
-		# 	lnu = np.log(np.random.random(1))        
-		# 	if (dE < 0) or (lnu < -dE): # If accepted.
-		# 		self.A_chain[m, i-1, 0] = 1
-		# 		self.q_chain[m, i, :] = q_tmp # save the new point
-		# 	else: # Otherwise, proposal rejected.
-		# 		self.q_chain[m, i, :] = q_initial # save the old point
-		# 		q_tmp = q_initial
-
-		# return
-
 		return
