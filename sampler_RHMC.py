@@ -176,37 +176,40 @@ class base_class(object):
 
 			return H_diag, H_grad_diag
 
-	def H_ff(self, f, grad=False, eps=1):
+	def H_ff(self, f, grad=False, fmin=1e-3):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to flux. 
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
+		f = max(np.abs(f), fmin)
 		if not grad:
-			return self.g_ff * np.min([ np.abs(1./(np.abs(f) + eps)), self.g0 / self.B_count])
+			return self.g_ff * np.min([ 1./f, self.g0 / self.B_count])
 		else:
-			val1 = np.abs(1./(np.abs(f) + eps))
+			val1 = np.abs(1./f)
 			val2 = self.g0 / self.B_count
 			if val1 < val2:
-				return self.g_ff * val1, -self.g_ff / (np.abs(f) + eps)**2
+				return self.g_ff * val1, -self.g_ff / f**2
 			else:
 				return self.g_ff * val2, 0.
 
-	def H_xx(self, f, grad=False, eps=1):
+	def H_xx(self, f, grad=False, fmin=1e-3):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to position. 
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
+		f = max(np.abs(f), fmin)
+
 		if not grad:
-			return self.g_xx * np.min([ (np.abs(f) + eps) * self.g1, (np.abs(f) + eps)**2 * self.g2 / self.B_count])
+			return self.g_xx * np.min([ f * self.g1, f**2 * self.g2 / self.B_count])
 		else:
-			val1 = (np.abs(f) + eps) * self.g1
-			val2 = (np.abs(f) + eps)**2 * self.g2 / self.B_count
+			val1 = f * self.g1
+			val2 = f**2 * self.g2 / self.B_count
 			if val1 < val2:
 				return self.g_xx * val1, self.g_xx * self.g1
 			else:
-				return self.g_xx * val2, 2 * self.g_xx * val2 / (np.abs(f) + eps)
+				return self.g_xx * val2, 2 * self.g_xx * val2 / f
 
 	def V(self, q, f_pos=False):
 		"""
