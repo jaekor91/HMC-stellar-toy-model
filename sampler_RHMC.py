@@ -441,7 +441,7 @@ class single_gym(base_class):
 		return
 
 	def diagnostics_first(self, q_true, show=True, save=False, figsize=(12, 12), \
-		plot_E = True, plot_V = False, plot_T = False, plot_flux=True):
+		plot_E = True, plot_V = False, plot_T = False, plot_dE=True, plot_flux=True):
 		"""
 		Scatter plot of the first source inference.
 		"""
@@ -456,7 +456,12 @@ class single_gym(base_class):
 		E = self.E_chain
 		V = self.V_chain
 		T = self.T_chain
-
+		# ---- Show only the difference from the mean
+		if plot_dE:
+			E -= np.mean(E)
+			V -= np.mean(V)
+			T -= np.mean(T)
+			
 		fig, ax_list = plt.subplots(2, 2, figsize=figsize)
 		# ---- XY plot
 		ax_list[0, 0].scatter(Y, X, c="black", s=1)
