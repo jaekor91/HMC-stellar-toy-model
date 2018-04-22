@@ -261,13 +261,27 @@ class single_gym(base_class):
 		E_previous = self.E_chain[0]
 		q_tmp = q_initial
 		p_tmp = p_initial
-		# p_half = p_tmp - self.dt * self.dVdq(q_tmp) / 2. # First half step
 
-		# #---- Looping over steps
-		# for i in xrange(1, self.Nsteps+1, 1):
-		# 	#---- Initial point 
-		# 	q_initial = q_tmp
-		# 	H_diag = self.H(q_initial) # 
+		#---- Looping over steps
+		# Using incorrect and naive leapfrog method
+		for i in xrange(1, self.Nsteps+1, 1):
+
+			# First half step for momentum
+			p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + p_tmp**2 * self.dHinvdq(q_tmp)) / 2.
+
+			# Leap frog step
+			q_tmp = self.dt * p_half / H_diag
+			H_diag = self.H(q_tmp) # immediately compute the new H_diag.
+
+			# Second half step for momentum
+			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp) + p_half**2 * self.dHinvdq(q_tmp)) / 2.
+
+			# Store the variables and energy
+			self.q_chain[i] = q_tmp
+			self.p_chain[i] = p_tmp
+			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos)
+			self.T_chain[i] = self.T(p_tmp, H_diag)
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
 
 		# 	iflip = np.zeros(self.d, dtype=bool) # Flip array.                
 		# 	for _ in xrange(steps_sample): 
