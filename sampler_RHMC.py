@@ -267,14 +267,14 @@ class single_gym(base_class):
 		for i in xrange(1, self.Nsteps+1, 1):
 
 			# First half step for momentum
-			p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + p_tmp**2 * self.dHinvdq(q_tmp)) / 2.
+			p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
 
 			# Leap frog step
 			q_tmp = self.dt * p_half / H_diag
 			H_diag = self.H(q_tmp) # immediately compute the new H_diag.
 
 			# Second half step for momentum
-			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp) + p_half**2 * self.dHinvdq(q_tmp)) / 2.
+			p_tmp = p_half  - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
 
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
