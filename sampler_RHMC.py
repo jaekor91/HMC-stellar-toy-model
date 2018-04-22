@@ -139,7 +139,7 @@ class base_class(object):
 
 		return q.reshape((q.size, ))
 
-	def H(self, q):
+	def H(self, q, grad=False):
 		"""
 		Diagonal matrix that corresponds to q in pi(p|q) = Norm(0, H)
 
@@ -147,12 +147,27 @@ class base_class(object):
 		corresponds to f, x, y
 		"""
 		H_diag = np.zeros(q.size)
-		for i in xrange(self.Nobjs):
-			f = q[3 * i]
-			H_diag[3 * i] = self.H_ff(f)
-			H_diag[3 * i + 1] = H_diag[3 * i + 2] = self.H_xx(f)
+		if not grad:
+			for i in xrange(self.Nobjs):
+				f = q[3 * i]
+				H_diag[3 * i] = self.H_ff(f)
+				H_diag[3 * i + 1] = H_diag[3 * i + 2] = self.H_xx(f)
 
-		return H_diag
+			return H_diag
+		else:
+			H_grad_diag = np.zeros(q.size)			
+			for i in xrange(self.Nobjs):
+				f = q[3 * i]
+				val, grad = self.H_ff(f, grad=True)
+				H_diag[3 * i] = val
+				H_grad_diag[3 * i] = grad
+
+				val, grad = self.H_xx(f, grad=True)
+				H_diag[3 * i + 1] = H_diag[3 * i + 2] = val
+				H_grad_diag[3 * i + 1] = H_grad_diag[3 * i + 2] = grad
+
+			return H_diag, H_grad_diag
+
 
 	def H_ff(self, f):
 		"""
