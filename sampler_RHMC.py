@@ -206,7 +206,7 @@ class base_class(object):
 			if val1 < val2:
 				return self.g_xx * val1, self.g_xx * self.g1
 			else:
-				return self.g_xx * val2, 2 * self.g_xx * val2 / np.abs(f + eps)
+				return self.g_xx * val2, 2 * self.g_xx * np.abs(f + eps)
 
 	def V(self, q, f_pos=False):
 		"""
