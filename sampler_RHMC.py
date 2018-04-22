@@ -182,15 +182,25 @@ class base_class(object):
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
-		f = max(np.abs(f), fmin)
+		if fmin > np.abs(f):
+			f = fmin
+			f_low = True
+		else: 
+			f = np.abs(f)
+			f_low = False
+
 		if not grad:
 			return self.g_ff * np.min([ 1./f, self.g0 / self.B_count])
 		else:
-			val1 = np.abs(1./f)
+			val1 = 1./f
 			val2 = self.g0 / self.B_count
 			if val1 < val2:
-				return self.g_ff * val1, -self.g_ff / f**2
+				if f_low:
+					return self.g_ff * val1, 0
+				else:
+					return self.g_ff * val1, -self.g_ff / f**2
 			else:
+				# Is not affected by the f.
 				return self.g_ff * val2, 0.
 
 	def H_xx(self, f, grad=False, fmin=1e-3):
@@ -199,7 +209,12 @@ class base_class(object):
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
-		f = max(np.abs(f), fmin)
+		if fmin > np.abs(f):
+			f = fmin
+			f_low = True
+		else: 
+			f = np.abs(f)
+			f_low = False
 
 		if not grad:
 			return self.g_xx * np.min([ f * self.g1, f**2 * self.g2 / self.B_count])
@@ -207,9 +222,15 @@ class base_class(object):
 			val1 = f * self.g1
 			val2 = f**2 * self.g2 / self.B_count
 			if val1 < val2:
-				return self.g_xx * val1, self.g_xx * self.g1
+				if f_low:
+					return self.g_xx * val1, 0.
+				else
+					return self.g_xx * val1, self.g_xx * self.g1				
 			else:
-				return self.g_xx * val2, 2 * self.g_xx * val2 / f
+				if f_low:
+					return self.g_xx * val2, 0.
+				else:
+					return self.g_xx * val2, 2 * self.g_xx * val2 / f
 
 	def V(self, q, f_pos=False):
 		"""
