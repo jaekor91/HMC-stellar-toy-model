@@ -289,8 +289,8 @@ class base_class(object):
 
 		return grads
 
-	def display_image(self, show=True, save=False):
-		fig, ax = plt.subplots(1, figsize = (7, 7))
+	def display_image(self, show=True, save=False, figsize=(5, 5)):
+		fig, ax = plt.subplots(1, figsize = figsize)
 		ax.imshow(self.D,  interpolation="none", cmap="gray")
 		if show:
 			plt.show()
@@ -433,3 +433,43 @@ class single_gym(base_class):
 			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
 				
 		return
+
+	def diagnostics_first(self, q_true, show=True, save=False, figsize=(12, 12), plot_E = True, plot_V = False, plot_T = False):
+		"""
+		Scatter plot of the first source inference.
+		"""
+		X = self.q_chain[:, 1]
+		Y = self.q_chain[:, 2]
+		F = self.q_chain[:, 0]
+		E = self.E_chain
+		V = self.V_chain
+		T = self.T_chain
+
+		fig, ax_list = plt.subplots(2, 2, figsize=figsize)
+		# ---- XY plot
+		ax_list[0, 0].scatter(Y, X, c="black", s=1)
+		ax_list[0, 0].scatter([Y[0]], [X[0]], c="red", s=50, edgecolor="none")
+
+		# --- Flux - Y
+		ax_list[1, 0].scatter(Y, F, c="black", s=1)
+		ax_list[1, 0].axhline(y = self.mag2flux_converter(q_true[0, 0]), c="red", lw=1, ls="--")
+		ax_list[1, 0].scatter([Y[0]], [F[0]], c="red", s=50, edgecolor="none")
+
+		# --- Flux - X 
+		ax_list[0, 1].scatter(F, X, c="black", s=1)
+		ax_list[0, 1].axvline(x = self.mag2flux_converter(q_true[0, 0]), c="red", lw=1, ls="--")
+		ax_list[0, 1].scatter([F[0]], [X[0]], c="red", s=50, edgecolor="none")
+
+		# --- Energy plot
+		if plot_V:
+			ax_list[1, 1].plot(range(self.Nsteps+1), V, c="green", lw=1)
+		if plot_T:
+			ax_list[1, 1].plot(range(self.Nsteps+1), T, c="red", lw=1)
+		if plot_E:
+			ax_list[1, 1].plot(range(self.Nsteps+1), E, c="blue", lw=1)
+
+		if show:
+			plt.show()
+		plt.close()
+
+		return 
