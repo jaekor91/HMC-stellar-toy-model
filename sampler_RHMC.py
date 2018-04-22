@@ -81,6 +81,12 @@ class base_class(object):
 
 		return mag2flux(mag) * self.flux_to_count
 
+	def flux2mag_converter(self, flux):
+		"""
+		Given user input magnitude convert it to flux counts.
+		"""
+
+		return flux2mag(flux /self.flux_to_count)
 
 	def compute_factors(self):
 		"""
