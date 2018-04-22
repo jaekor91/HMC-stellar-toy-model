@@ -166,7 +166,7 @@ class base_class(object):
 		"""
 		return self.g_xx * np.min([f * self.g1, f**2 * self.g2 / self.B_count])
 
-	def V(self, q):
+	def V(self, q, f_pos=False):
 		"""
 		Negative Poisson log-likelihood given data and model.
 
@@ -175,6 +175,17 @@ class base_class(object):
 
 		Assume a fixed background.
 		"""
+		if f_pos: # If f is required to be positive
+			# Check whether all f is positive
+			all_f_pos = True
+			for i in xrange(self.Nobjs):
+				if q[3 * i] < 0:
+					all_f_pos = False
+					break
+
+			if not all_f_pos: # If not all f is positive, then return infinity.
+				return np.infty
+
 		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
 		for i in range(self.Nobjs): # Add every object.
 			f, x, y = q[3*i:3*i+3]
@@ -192,17 +203,6 @@ class base_class(object):
 	    term2 = np.log(np.abs(np.prod(H_diag)))
 
 	    return (term1 + term2) / 2.
-
-	# def E(self, q, p, mass_matrix=None):
-	#     """
-	#     Kinetic plus potential energy    
-	#     """
-	#     Nobjs = q.size // 3 # Assume that q is flat.s
-	#     for l in xrange(Nobjs):
-	#         if q[3 * l] < self.f_lim:
-	#             return np.infty
-
-	#     return self.V(q) + self.K(p, mass_matrix)
 
 
 class single_gym(base_class):
@@ -254,9 +254,9 @@ class single_gym(base_class):
 		p_initial = self.u_sample(self.d) / np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
-		self.V_chain[0] = self.V(q_initial)
+		self.V_chain[0] = self.V(q_initial, f_pos=f_pos)
 		self.T_chain[0] = self.T(p_initial, H_diag)
-		# self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
+		self.E_chain[0] = self.V_chain[0] + self.T_chain[0]
 
 		# E_previous = self.E_chain[m, 0, 0]
 		# q_tmp = q_initial
