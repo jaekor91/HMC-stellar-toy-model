@@ -436,7 +436,7 @@ class single_gym(base_class):
 				
 		return
 
-	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", T=None):
+	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", T=None, delta=1e-6):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
@@ -520,7 +520,13 @@ class single_gym(base_class):
 				elif solver == "implicit":
 					# First update phi-hat
 					p_tmp = p_tmp - self.dt * self.dphidq(q_tmp, p_tmp) / 2.
-					
+
+					# p-tau update
+
+					# q-tau update
+
+					# p-tau update
+					p_tmp = p_tmp - self.dt * self.dtaudq(q_tmp, p_tmp) / 2.
 
 					# Last update phi-hat
 					p_tmp = p_tmp - self.dt * self.dphidq(q_tmp, p_tmp) / 2.
