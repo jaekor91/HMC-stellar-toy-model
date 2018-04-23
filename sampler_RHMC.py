@@ -311,6 +311,25 @@ class base_class(object):
 
 		return grads
 
+	def dphidq(self, q, p):
+		"""
+		As in the general metric paper.
+		"""
+		# Gradient contribution
+		grads = self.dVdq(q)
+
+		# Compute H matrix and their gradients
+		H, H_grad = self.H(q, grad=True)
+
+		# For each object compute the gradient
+		for i in xrange(self.Nobjs):
+			# Log Det term
+			term2 = (H_grad[3 * i] / H[3 * i]) + (2 * H_grad[3 * i + 1] / H[3 * i + 1])
+
+			grads[3 * i] += term2 / 2.
+
+		return grads
+
 	def display_image(self, show=True, save=False, figsize=(5, 5)):
 		fig, ax = plt.subplots(1, figsize = figsize)
 		ax.imshow(self.D,  interpolation="none", cmap="gray")
@@ -481,7 +500,10 @@ class single_gym(base_class):
 					# Update the position
 					H_diag = self.H(q_tmp)
 				elif solver == "implicit":
-					
+					# First update phi-hat
+					p_tmp = p_tmp - self.dt * self.dphidq(q_tmp, p_tmp) / 2.
+
+					# 
 				else: # If the user input the non-existing solver.
 					assert False
 
