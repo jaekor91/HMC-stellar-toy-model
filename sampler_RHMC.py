@@ -399,11 +399,13 @@ class single_gym(base_class):
 				
 		return
 
-	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive"):
+	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", T=None):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
 		"""
+		if solver == "stiff":
+			assert (T is not None)
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
@@ -433,32 +435,33 @@ class single_gym(base_class):
 		p_tmp = p_initial
 
 		#---- Looping over steps
-		for i in xrange(1, self.Nsteps+1, 1):
-			if solver == "naive":
-				# Compute new position
-				q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
+		if solver == "stiff":
+			pass
+		else:
+			for i in xrange(1, self.Nsteps+1, 1):
+				if solver == "naive":
+					# Compute new position
+					q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
 
-				# Momentum update
-				p_tmp_old = p_tmp
-				p_tmp = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) 			
+					# Momentum update
+					p_tmp_old = p_tmp
+					p_tmp = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) 			
 
-				if f_pos: # If flux must be kept positive always.
-					iflip = np.zeros(q_tmp_new.size, dtype=bool)
-					for k in xrange(self.Nobjs):
-						f = q_tmp_new[3 * k]
-						# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-						if f < self.f_lim: 
-							p_tmp[3 * k] = p_tmp_old[3 * k] * -1.
+					if f_pos: # If flux must be kept positive always.
+						iflip = np.zeros(q_tmp_new.size, dtype=bool)
+						for k in xrange(self.Nobjs):
+							f = q_tmp_new[3 * k]
+							# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+							if f < self.f_lim: 
+								p_tmp[3 * k] = p_tmp_old[3 * k] * -1.
 
-				# Update the position
-				q_tmp = q_tmp_new
-				H_diag = self.H(q_tmp)
-			elif solver == "leap_frog":
-				pass
-			elif solver == "stiff"
-				pass
-			else:
-				assert False
+					# Update the position
+					q_tmp = q_tmp_new
+					H_diag = self.H(q_tmp)
+				elif solver == "leap_frog":
+					pass
+				else: # If the user input the non-existing solver.
+					assert False
 
 
 			# Store the variables and energy
