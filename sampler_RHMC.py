@@ -353,9 +353,9 @@ class base_class(object):
 		As in the general metric paper.
 		"""
 		# Compute H matrix
-		H = self.H(q, grad=False)
+		H_diag = self.H(q, grad=False)
 
-		return p / H
+		return p / H_diag
 
 	def display_image(self, show=True, save=False, figsize=(5, 5)):
 		fig, ax = plt.subplots(1, figsize = figsize)
