@@ -5,7 +5,7 @@
 # - Constants including experimental condition
 # Single trajectory class is used to achieve the following.
 # - Show that the energy is conserved throughout its trajectory.
-# - Show that the path is reversible as long as the base step size is made small.
+# - Show that the path is reversible as long as the base step size is made small. (Not shown)
 # - Multiple sources can be included.
 # - Produce a video that convinces for each of the case above.
 # General inference class: 
@@ -568,8 +568,9 @@ class single_gym(base_class):
 				
 		return
 
-	def diagnostics_first(self, q_true, show=True, save=False, figsize=(12, 12), \
-		plot_E = True, plot_V = False, plot_T = False, plot_flux=True):
+	def diagnostics_first(self, q_true, show=True, save=False, figsize=(18, 12), \
+		plot_E = True, plot_V = False, plot_T = False, plot_flux=True, num_ticks=5,\
+		ft_size = 20, pt_size1=20):
 		"""
 		Scatter plot of the first source inference.
 		"""
@@ -586,27 +587,63 @@ class single_gym(base_class):
 		T = self.T_chain
 			
 		fig, ax_list = plt.subplots(2, 2, figsize=figsize)
+		# ---- Joining certain axis
+		ax_list[0, 0].get_shared_x_axes().join(ax_list[0, 0], ax_list[1, 0])
+		ax_list[0, 0].get_shared_y_axes().join(ax_list[0, 0], ax_list[0, 1])
+
 		# ---- XY plot
-		ax_list[0, 0].scatter(Y, X, c="black", s=1)
-		ax_list[0, 0].scatter([Y[0]], [X[0]], c="red", s=50, edgecolor="none")
+		ax_list[0, 0].scatter(Y, X, c="black", s=pt_size1, edgecolor="none")
+		ax_list[0, 0].scatter([Y[0]], [X[0]], c="red", s=100, edgecolor="none")
+		ax_list[0, 0].set_xlabel("Y", fontsize=ft_size)					
+		ax_list[0, 0].set_ylabel("X", fontsize=ft_size)
+		yticks00 = ticker.MaxNLocator(num_ticks)
+		xticks00 = ticker.MaxNLocator(num_ticks)		
+		ax_list[0, 0].yaxis.set_major_locator(yticks00)
+		ax_list[0, 0].xaxis.set_major_locator(xticks00)		
+		ax_list[0, 0].axis("equal")		
 
 		# --- Flux - Y
-		ax_list[1, 0].scatter(Y, F, c="black", s=1)
-		ax_list[1, 0].axhline(y = F_true, c="red", lw=1, ls="--")
-		ax_list[1, 0].scatter([Y[0]], [F[0]], c="red", s=50, edgecolor="none")
+		ax_list[1, 0].scatter(Y, F, c="black", s=pt_size1, edgecolor="none")
+		ax_list[1, 0].axhline(y = F_true, c="red", lw=2., ls="--")
+		ax_list[1, 0].scatter([Y[0]], [F[0]], c="red", s=100, edgecolor="none")
+		if plot_flux:
+			ax_list[1, 0].set_ylabel("Flux", fontsize=ft_size)
+		else:
+			ax_list[1, 0].set_ylabel("Mag", fontsize=ft_size)
+		ax_list[1, 0].set_xlabel("Y", fontsize=ft_size)
+		yticks10 = ticker.MaxNLocator(num_ticks)
+		xticks10 = ticker.MaxNLocator(num_ticks)		
+		ax_list[1, 0].yaxis.set_major_locator(yticks10)
+		ax_list[1, 0].xaxis.set_major_locator(xticks10)		
 
 		# --- Flux - X 
-		ax_list[0, 1].scatter(F, X, c="black", s=1)
-		ax_list[0, 1].axvline(x = F_true, c="red", lw=1, ls="--")
-		ax_list[0, 1].scatter([F[0]], [X[0]], c="red", s=50, edgecolor="none")
+		ax_list[0, 1].scatter(F, X, c="black", s=pt_size1, edgecolor="none")
+		ax_list[0, 1].axvline(x = F_true, c="red", lw=2., ls="--")
+		ax_list[0, 1].scatter([F[0]], [X[0]], c="red", s=100, edgecolor="none")
+		if plot_flux:
+			ax_list[0, 1].set_xlabel("Flux", fontsize=ft_size)
+		else:
+			ax_list[0, 1].set_xlabel("Mag", fontsize=ft_size)
+		ax_list[0, 1].set_ylabel("X", fontsize=ft_size)
+		yticks01 = ticker.MaxNLocator(num_ticks)
+		xticks01 = ticker.MaxNLocator(num_ticks)
+		ax_list[0, 1].yaxis.set_major_locator(yticks01)
+		ax_list[0, 1].xaxis.set_major_locator(xticks01)
 
 		# --- Energy plot
 		if plot_V:
-			ax_list[1, 1].plot(range(self.Nsteps+1), V, c="green", lw=1)
+			ax_list[1, 1].plot(range(self.Nsteps+1), V, c="green", lw=2, label="V")
 		if plot_T:
-			ax_list[1, 1].plot(range(self.Nsteps+1), T, c="red", lw=1)
+			ax_list[1, 1].plot(range(self.Nsteps+1), T, c="red", lw=2, label="T")
 		if plot_E:
-			ax_list[1, 1].plot(range(self.Nsteps+1), E, c="blue", lw=1)
+			ax_list[1, 1].plot(range(self.Nsteps+1), E, c="blue", lw=2, label="H")
+		ax_list[1, 1].legend(loc="upper right", fontsize=ft_size)
+		ax_list[1, 1].set_xlabel("Step", fontsize=ft_size)
+		ax_list[1, 1].set_ylabel(r"$\Delta E$", fontsize=ft_size)
+		yticks11 = ticker.MaxNLocator(num_ticks)
+		xticks11 = ticker.MaxNLocator(num_ticks)				
+		ax_list[1, 1].yaxis.set_major_locator(yticks11)
+		ax_list[1, 1].xaxis.set_major_locator(xticks11)
 
 		if show:
 			plt.show()
