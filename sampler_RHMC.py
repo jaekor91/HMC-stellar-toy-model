@@ -193,20 +193,12 @@ class base_class(object):
 			f_low = False
 
 		if not grad:
-			return self.g_xx * np.min([ f * self.g1, f**2 * self.g2 / self.B_count])
+			return self.g_xx * f * self.g1
 		else:
-			val1 = f * self.g1
-			val2 = f**2 * self.g2 / self.B_count
-			if val1 < val2:
-				if f_low:
-					return self.g_xx * val1, 0.
-				else:
-					return self.g_xx * val1, self.g_xx * self.g1				
+			if f_low:
+				return self.g_xx * f * self.g1, 0.
 			else:
-				if f_low:
-					return self.g_xx * val2, 0.
-				else:
-					return self.g_xx * val2, 2 * self.g_xx * val2 / f
+				return self.g_xx * f * self.g1, self.g_xx * self.g1
 
 	def H_ff(self, f, grad=False, fmin = 1e-10):
 		"""
