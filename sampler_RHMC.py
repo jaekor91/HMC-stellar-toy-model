@@ -488,14 +488,14 @@ class single_gym(base_class):
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
 			self.p_chain[i] = p_tmp
-			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos)
-			self.T_chain[i] = self.T(p_tmp, H_diag)
-			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
+			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_chain[0]
+			self.T_chain[i] = self.T(p_tmp, H_diag) - T_chain[0]
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - E_chain[0]
 				
 		return
 
 	def diagnostics_first(self, q_true, show=True, save=False, figsize=(12, 12), \
-		plot_E = True, plot_V = False, plot_T = False, plot_dE=True, plot_flux=True):
+		plot_E = True, plot_V = False, plot_T = False, plot_flux=True):
 		"""
 		Scatter plot of the first source inference.
 		"""
@@ -510,11 +510,6 @@ class single_gym(base_class):
 		E = self.E_chain
 		V = self.V_chain
 		T = self.T_chain
-		# ---- Show only the difference from the mean
-		if plot_dE:
-			E -= np.mean(E)
-			V -= np.mean(V)
-			T -= np.mean(T)
 			
 		fig, ax_list = plt.subplots(2, 2, figsize=figsize)
 		# ---- XY plot
