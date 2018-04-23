@@ -176,39 +176,15 @@ class base_class(object):
 
 			return H_diag, H_grad_diag
 
-	def H_ff(self, f, grad=False, fmin=200):
-		"""
-		Given the object flux, returns the approximate H matrix element corresponding to flux. 
-
-		If grad=True, then retrun gradient respect to flux.
-		"""
-		if fmin > np.abs(f):
-			f = fmin
-			f_low = True
-		else: 
-			f = np.abs(f)
-			f_low = False
-
-		if not grad:
-			return self.g_ff * np.min([ 1./f, self.g0 / self.B_count])
-		else:
-			val1 = 1./f
-			val2 = self.g0 / self.B_count
-			if val1 < val2:
-				if f_low:
-					return self.g_ff * val1, 0
-				else:
-					return self.g_ff * val1, -self.g_ff / f**2
-			else:
-				# Is not affected by the f.
-				return self.g_ff * val2, 0.
-
-	def H_xx(self, f, grad=False, fmin=200):
+	def H_xx(self, f, grad=False):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to position. 
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
+
+		fmin = self.B_count * 100
+
 		if fmin > np.abs(f):
 			f = fmin
 			f_low = True
@@ -232,6 +208,22 @@ class base_class(object):
 				else:
 					return self.g_xx * val2, 2 * self.g_xx * val2 / f
 
+	def H_ff(self, f, grad=False, fmin=1e-6):
+		"""
+		Given the object flux, returns the approximate H matrix element corresponding to flux. 
+
+		If grad=True, then retrun gradient respect to flux.
+		"""
+		if fmin > np.abs(f):
+			f = fmin
+		else: 
+			f = np.abs(f)
+
+		if not grad:
+			return self.g_ff / f
+		else:
+			return self.g_ff / f, -self.g_ff / f**2
+		
 	def V(self, q, f_pos=False):
 		"""
 		Negative Poisson log-likelihood given data and model.
@@ -478,6 +470,7 @@ class single_gym(base_class):
 			q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
 
 			# Momentum update
+			p_tmp_old = p_tmp
 			p_tmp = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) 			
 
 			if f_pos: # If flux must be kept positive always.
@@ -485,8 +478,8 @@ class single_gym(base_class):
 				for k in xrange(self.Nobjs):
 					f = q_tmp_new[3 * k]
 					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-					if f < 0: 
-						p_tmp[3 * k] *= -1
+					if f < (1e-6): 
+						p_tmp[3 * k] = p_tmp_old[3 * k] * -1.
 
 			# Update the position
 			q_tmp = q_tmp_new
