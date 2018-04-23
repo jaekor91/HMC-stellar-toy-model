@@ -208,21 +208,27 @@ class base_class(object):
 				else:
 					return self.g_xx * val2, 2 * self.g_xx * val2 / f
 
-	def H_ff(self, f, grad=False, fmin=1e-6):
+	def H_ff(self, f, grad=False, fmin = 1e-10):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to flux. 
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
+
 		if fmin > np.abs(f):
 			f = fmin
+			f_low = True
 		else: 
 			f = np.abs(f)
+			f_low = False
 
 		if not grad:
 			return self.g_ff / f
 		else:
-			return self.g_ff / f, -self.g_ff / f**2
+			if not f_low:
+				return self.g_ff / f, -self.g_ff / f**2
+			else:
+				return self.g_ff / f, 0.				
 		
 	def V(self, q, f_pos=False):
 		"""
