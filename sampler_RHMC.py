@@ -566,7 +566,7 @@ class single_gym(base_class):
 			self.p_chain[i] = p_tmp
 			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_initial
 			self.T_chain[i] = self.T(p_tmp, H_diag) - T_initial
-			self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - E_initial
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
 				
 		return
 
