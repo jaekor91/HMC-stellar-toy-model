@@ -551,6 +551,9 @@ class single_gym(base_class):
 
 					# Last update phi-hat
 					p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+
+					# Diagonal H update
+					H_diag = self.H(q_tmp, grad=False)
 				else: # If the user input the non-existing solver.
 					assert False
 
