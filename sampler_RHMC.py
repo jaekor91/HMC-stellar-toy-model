@@ -122,8 +122,8 @@ class base_class(object):
 
 		#---- Default mag set up
 		self.mB = 23
-		B_count = self.mag2flux_converter(self.mB)
-		f_lim = self.mag2flux_converter(self.mB-1)
+		B_count = mag2flux(self.mB) * flux_to_count
+		self.f_lim = mag2flux(self.mB-2) * flux_to_count
 
 		# Size of the image
 		num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
@@ -201,12 +201,13 @@ class base_class(object):
 			else:
 				return self.g_xx * f * self.g1, self.g_xx * self.g1
 
-	def H_ff(self, f, grad=False, fmin = 1e-10):
+	def H_ff(self, f, grad=False):
 		"""
 		Given the object flux, returns the approximate H matrix element corresponding to flux. 
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
+		fmin = self.f_lim
 
 		if fmin > np.abs(f):
 			f = fmin
