@@ -348,6 +348,15 @@ class base_class(object):
 
 		return grads
 
+	def dtaudp(self, q, p):
+		"""
+		As in the general metric paper.
+		"""
+		# Compute H matrix
+		H = self.H(q, grad=False)
+
+		return p / H
+
 	def display_image(self, show=True, save=False, figsize=(5, 5)):
 		fig, ax = plt.subplots(1, figsize = figsize)
 		ax.imshow(self.D,  interpolation="none", cmap="gray")
@@ -533,7 +542,7 @@ class single_gym(base_class):
 					sig = np.copy(q_tmp)
 					dq = np.infty
 					while dq > delta:
-						q_prime = sig + (self.dt/2.) * (self.dtaudq(sig, p_tmp) + self.dtaudq(q_tmp, p_tmp))
+						q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
 						dq = np.max(np.abs(q_tmp - q_prime))
 						q_tmp = np.copy(q_prime)					
 
