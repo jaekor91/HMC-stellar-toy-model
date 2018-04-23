@@ -445,15 +445,13 @@ class single_gym(base_class):
 				
 		return
 
-	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", T=None, delta=1e-6):
+	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", delta=1e-6):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
 		"""
-		if solver == "stiff":
-			assert (T is not None)
-		elif solver == "leap_frog":
-			print "Doesn't work quite well."
+		if solver == "leap_frog":
+			print "Leap frog solver doesn't work quite well."
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
@@ -483,86 +481,83 @@ class single_gym(base_class):
 		p_tmp = p_initial
 
 		#---- Looping over steps
-		if solver == "stiff":
-			pass
-		else:
-			for i in xrange(1, self.Nsteps+1, 1):
-				if solver == "naive":
-					# Compute new position
-					q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
+		for i in xrange(1, self.Nsteps+1, 1):
+			if solver == "naive":
+				# Compute new position
+				q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
 
-					# Momentum update
-					p_tmp_old = p_tmp
-					p_tmp = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) 			
+				# Momentum update
+				p_tmp_old = p_tmp
+				p_tmp = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) 			
 
-					if f_pos: # If flux must be kept positive always.
-						iflip = np.zeros(q_tmp_new.size, dtype=bool)
-						for k in xrange(self.Nobjs):
-							f = q_tmp_new[3 * k]
-							# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-							if f < self.f_lim: 
-								p_tmp[3 * k] = p_tmp_old[3 * k] * -1.
+				if f_pos: # If flux must be kept positive always.
+					iflip = np.zeros(q_tmp_new.size, dtype=bool)
+					for k in xrange(self.Nobjs):
+						f = q_tmp_new[3 * k]
+						# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+						if f < self.f_lim: 
+							p_tmp[3 * k] = p_tmp_old[3 * k] * -1.
 
-					# Update the position
-					q_tmp = q_tmp_new
-					H_diag = self.H(q_tmp)
-				elif solver == "leap_frog":
-					# First momentum half-step
-					p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
+				# Update the position
+				q_tmp = q_tmp_new
+				H_diag = self.H(q_tmp)
+			elif solver == "leap_frog":
+				# First momentum half-step
+				p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
 
-					# Compute new position
-					q_tmp = q_tmp + self.dt * p_half / H_diag
+				# Compute new position
+				q_tmp = q_tmp + self.dt * p_half / H_diag
 
-					# Momentum update
-					p_tmp = p_half - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_half)) / 2.
+				# Momentum update
+				p_tmp = p_half - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_half)) / 2.
 
-					if f_pos: # If flux must be kept positive always.
-						iflip = np.zeros(q_tmp.size, dtype=bool)
-						for k in xrange(self.Nobjs):
-							f = q_tmp[3 * k]
-							# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-							if f < self.f_lim: 
-								p_tmp[3 * k] = p_half[3 * k] * -1.
+				if f_pos: # If flux must be kept positive always.
+					iflip = np.zeros(q_tmp.size, dtype=bool)
+					for k in xrange(self.Nobjs):
+						f = q_tmp[3 * k]
+						# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+						if f < self.f_lim: 
+							p_tmp[3 * k] = p_half[3 * k] * -1.
 
-					# Update the position
-					H_diag = self.H(q_tmp)
-				elif solver == "implicit":
-					# First update phi-hat
-					p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+				# Update the position
+				H_diag = self.H(q_tmp)
+			elif solver == "implicit":
+				# First update phi-hat
+				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 
-					# p-tau update
-					rho = np.copy(p_tmp)
-					dp = np.infty
-					while dp > delta:
-						p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
-						dp = np.max(np.abs(p_tmp - p_prime))
-						p_tmp = np.copy(p_prime)
+				# p-tau update
+				rho = np.copy(p_tmp)
+				dp = np.infty
+				while dp > delta:
+					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
+					dp = np.max(np.abs(p_tmp - p_prime))
+					p_tmp = np.copy(p_prime)
 
-					# q-tau update
-					sig = np.copy(q_tmp)
-					dq = np.infty
-					while dq > delta:
-						q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
-						dq = np.max(np.abs(q_tmp - q_prime))
-						q_tmp = np.copy(q_prime)					
+				# q-tau update
+				sig = np.copy(q_tmp)
+				dq = np.infty
+				while dq > delta:
+					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
+					dq = np.max(np.abs(q_tmp - q_prime))
+					q_tmp = np.copy(q_prime)					
 
-					# p-tau update
-					p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
+				# p-tau update
+				p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
 
-					# Last update phi-hat
-					p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+				# Last update phi-hat
+				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 
-					# Diagonal H update
-					H_diag = self.H(q_tmp, grad=False)
-				else: # If the user input the non-existing solver.
-					assert False
+				# Diagonal H update
+				H_diag = self.H(q_tmp, grad=False)
+			else: # If the user input the non-existing solver.
+				assert False
 
-				# Store the variables and energy
-				self.q_chain[i] = q_tmp
-				self.p_chain[i] = p_tmp
-				self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - self.V_chain[0]
-				self.T_chain[i] = self.T(p_tmp, H_diag) - self.T_chain[0]
-				self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - self.E_chain[0]
+			# Store the variables and energy
+			self.q_chain[i] = q_tmp
+			self.p_chain[i] = p_tmp
+			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - self.V_chain[0]
+			self.T_chain[i] = self.T(p_tmp, H_diag) - self.T_chain[0]
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - self.E_chain[0]
 				
 		return
 
