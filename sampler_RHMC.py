@@ -406,6 +406,8 @@ class single_gym(base_class):
 		"""
 		if solver == "stiff":
 			assert (T is not None)
+		elif solver == "leap_frog":
+			print "Doesn't work quite well."
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
@@ -459,17 +461,36 @@ class single_gym(base_class):
 					q_tmp = q_tmp_new
 					H_diag = self.H(q_tmp)
 				elif solver == "leap_frog":
-					pass
+					# First momentum half-step
+					p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2.
+
+					# Compute new position
+					q_tmp = q_tmp + self.dt * p_half / H_diag
+
+					# Momentum update
+					p_tmp = p_half - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_half)) / 2.
+
+					if f_pos: # If flux must be kept positive always.
+						iflip = np.zeros(q_tmp.size, dtype=bool)
+						for k in xrange(self.Nobjs):
+							f = q_tmp[3 * k]
+							# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+							if f < self.f_lim: 
+								p_tmp[3 * k] = p_half[3 * k] * -1.
+
+					# Update the position
+					H_diag = self.H(q_tmp)
+				elif solver == "implicit":
+					
 				else: # If the user input the non-existing solver.
 					assert False
 
-
-			# Store the variables and energy
-			self.q_chain[i] = q_tmp
-			self.p_chain[i] = p_tmp
-			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - self.V_chain[0]
-			self.T_chain[i] = self.T(p_tmp, H_diag) - self.T_chain[0]
-			self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - self.E_chain[0]
+				# Store the variables and energy
+				self.q_chain[i] = q_tmp
+				self.p_chain[i] = p_tmp
+				self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - self.V_chain[0]
+				self.T_chain[i] = self.T(p_tmp, H_diag) - self.T_chain[0]
+				self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - self.E_chain[0]
 				
 		return
 
