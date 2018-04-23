@@ -122,7 +122,8 @@ class base_class(object):
 
 		#---- Default mag set up
 		self.mB = 23
-		B_count = mag2flux(self.mB) * flux_to_count
+		B_count = self.mag2flux_converter(self.mB)
+		f_lim = self.mag2flux_converter(self.mB-1)
 
 		# Size of the image
 		num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
@@ -183,7 +184,7 @@ class base_class(object):
 		If grad=True, then retrun gradient respect to flux.
 		"""
 
-		fmin = self.B_count * 100
+		fmin = self.f_lim
 
 		if fmin > np.abs(f):
 			f = fmin
@@ -476,7 +477,7 @@ class single_gym(base_class):
 				for k in xrange(self.Nobjs):
 					f = q_tmp_new[3 * k]
 					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-					if f < (1e-6): 
+					if f < self.f_lim: 
 						p_tmp[3 * k] = p_tmp_old[3 * k] * -1.
 
 			# Update the position
