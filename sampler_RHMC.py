@@ -432,38 +432,7 @@ class single_gym(base_class):
 		q_tmp = q_initial
 		p_tmp = p_initial
 
-		# #---- Looping over steps
-		# # Using incorrect and naive leapfrog method
-		# FLOP = False
-		# for i in xrange(1, self.Nsteps+1, 1):
-		# 	# First half step for momentum
-		# 	p_half = p_tmp - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_tmp)) / 2. 			
-		# 	if FLOP:
-		# 		p_half[iflip] = p_half_tmp
-		# 		FLOP = False
-
-		# 	# Leap frog step
-		# 	H_diag = self.H(q_tmp) 			
-		# 	q_tmp = q_tmp + self.dt * p_half / H_diag
-
-		# 	if f_pos: # If flux must be kept positive always.
-		# 		iflip = np.zeros(q_tmp.size, dtype=bool)
-		# 		for k in xrange(self.Nobjs):
-		# 			f = q_tmp[3 * k]
-		# 			# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-		# 			if f < 0: 
-		# 				iflip[3 * k] = True
-		# 				FLOP = True						
-
-		# 		# Save current half-step momentum that will be flipped.
-		# 		if FLOP: 
-		# 			p_half_tmp = p_half[iflip] * (-1)
-
-		# 	# Second half step for momentum
-		# 	p_tmp = p_half - self.dt * (self.dVdq(q_tmp) + self.dVdq_RHMC(q_tmp, p_half)) / 2.
-
-		#---- Looping over steps
-		# Most naive integrator
+		#---- Looping over steps: Most naive integrator
 		for i in xrange(1, self.Nsteps+1, 1):
 			# Compute new position
 			q_tmp_new = q_tmp + self.dt * p_tmp / H_diag
