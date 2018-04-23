@@ -484,7 +484,7 @@ class single_gym(base_class):
 		# Set the initial values.
 		q_initial = q_model_0
 		H_diag = self.H(q_initial, grad=False) # 
-		if p initial is None:
+		if p_initial is None:
 			p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
