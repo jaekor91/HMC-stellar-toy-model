@@ -522,8 +522,20 @@ class single_gym(base_class):
 					p_tmp = p_tmp - self.dt * self.dphidq(q_tmp, p_tmp) / 2.
 
 					# p-tau update
+					rho = np.copy(p_tmp)
+					dP = np.infty
+					while dP > delta:
+						p_prime = rho - self.dt * self.dtaudq(q_tmp, p_tmp) / 2.
+						dP = np.max(np.abs(p_tmp - p_prime))
+						p_tmp = np.copy(p_prime)
 
 					# q-tau update
+					sig = np.copy(q_tmp)
+					dq = np.infty
+					while dq > delta:
+						q_prime = sig + (self.dt / 2.) * (self.dtaudq(sig, p_tmp) + self.dtaudq(q_tmp, p_tmp))
+						dq = np.max(np.abs(q_tmp - q_prime))
+						q_tmp = np.copy(q_prime)					
 
 					# p-tau update
 					p_tmp = p_tmp - self.dt * self.dtaudq(q_tmp, p_tmp) / 2.
