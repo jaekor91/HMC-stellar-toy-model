@@ -549,6 +549,15 @@ class single_gym(base_class):
 
 				# Diagonal H update
 				H_diag = self.H(q_tmp, grad=False)
+
+				# Check for any source with flux < f_lim.
+				iflip = np.zeros(q_tmp.size, dtype=bool)
+				for k in xrange(self.Nobjs):
+					f = q_tmp[3 * k]
+					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+					if f < self.f_lim: 
+						p_tmp[3 * k] *= -1.
+
 			else: # If the user input the non-existing solver.
 				assert False
 
