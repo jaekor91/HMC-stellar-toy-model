@@ -457,10 +457,12 @@ class single_gym(base_class):
 				
 		return
 
-	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", delta=1e-6):
+	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", delta=1e-6, p_initial=None):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
+
+		If p_initial is not None, then use that as the initial seed.
 		"""
 		if solver == "leap_frog":
 			print "Leap frog solver doesn't work quite well."
@@ -482,7 +484,8 @@ class single_gym(base_class):
 		# Set the initial values.
 		q_initial = q_model_0
 		H_diag = self.H(q_initial, grad=False) # 
-		p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
+		if p initial is None:
+			p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
 		V_initial = self.V(q_initial, f_pos=f_pos)
@@ -602,13 +605,23 @@ class single_gym(base_class):
 		E = self.E_chain
 		V = self.V_chain
 		T = self.T_chain
+
+		# ---- Min Max
+		Xmin, Xmax = np.min(X), np.max(X)
+		Ymin, Ymax = np.min(Y), np.max(Y)		
 			
 		fig, ax_list = plt.subplots(2, 2, figsize=figsize)
+		ax_list[0, 0].axis("equal")
+		if (Xmin < 0) or (Xmax > self.num_rows - 1) or (Ymin < 0) or (Ymax > self.num_cols - 1):
+			ax_list[0, 0].set_xlim([0, self.num_rows-1])
+			ax_list[0, 0].set_ylim([0, self.num_cols-1])
+
 		# ---- Joining certain axis
 		ax_list[0, 0].get_shared_x_axes().join(ax_list[0, 0], ax_list[1, 0])
 		ax_list[0, 0].get_shared_y_axes().join(ax_list[0, 0], ax_list[0, 1])
 
 		# ---- XY plot
+		ax_list[0, 0].scatter([q_true[0, 2]], [q_true[0, 1]], c="green", s=200, edgecolor="none")				
 		ax_list[0, 0].scatter(Y, X, c="black", s=pt_size1, edgecolor="none")
 		ax_list[0, 0].scatter([Y[0]], [X[0]], c="red", s=100, edgecolor="none")
 		ax_list[0, 0].set_xlabel("Y", fontsize=ft_size)					
@@ -617,9 +630,9 @@ class single_gym(base_class):
 		xticks00 = ticker.MaxNLocator(num_ticks)		
 		ax_list[0, 0].yaxis.set_major_locator(yticks00)
 		ax_list[0, 0].xaxis.set_major_locator(xticks00)		
-		ax_list[0, 0].axis("equal")		
 
 		# --- Flux - Y
+		ax_list[1, 0].scatter([q_true[0, 2]], [q_true[0, 0]], c="green", s=200, edgecolor="none")						
 		ax_list[1, 0].scatter(Y, F, c="black", s=pt_size1, edgecolor="none")
 		ax_list[1, 0].axhline(y = F_true, c="red", lw=2., ls="--")
 		ax_list[1, 0].scatter([Y[0]], [F[0]], c="red", s=100, edgecolor="none")
@@ -634,6 +647,7 @@ class single_gym(base_class):
 		ax_list[1, 0].xaxis.set_major_locator(xticks10)		
 
 		# --- Flux - X 
+		ax_list[0, 1].scatter([q_true[0, 0]], [q_true[0, 1]], c="green", s=200, edgecolor="none")						
 		ax_list[0, 1].scatter(F, X, c="black", s=pt_size1, edgecolor="none")
 		ax_list[0, 1].axvline(x = F_true, c="red", lw=2., ls="--")
 		ax_list[0, 1].scatter([F[0]], [X[0]], c="red", s=100, edgecolor="none")
