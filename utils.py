@@ -7,6 +7,8 @@ mpl.rcParams['ytick.major.width'] = 1.
 mpl.rcParams['xtick.labelsize'] = 15
 mpl.rcParams['ytick.labelsize'] = 15
 
+from matplotlib import ticker
+
 import matplotlib
 from mpl_toolkits.axes_grid1 import AxesGrid
 
