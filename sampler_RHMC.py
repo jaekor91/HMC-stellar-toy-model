@@ -355,11 +355,20 @@ class base_class(object):
 
 		return p / H_diag
 
-	def display_image(self, show=True, save=False, figsize=(5, 5)):
+	def display_image(self, show=True, save=None, figsize=(5, 5), num_ticks = 6):
 		fig, ax = plt.subplots(1, figsize = figsize)
+		"""
+		Display the data image
+		"""
 		ax.imshow(self.D,  interpolation="none", cmap="gray")
+		yticks = ticker.MaxNLocator(num_ticks)
+		xticks = ticker.MaxNLocator(num_ticks)		
+		ax.yaxis.set_major_locator(yticks)
+		ax.xaxis.set_major_locator(xticks)		
 		if show:
 			plt.show()
+		if save is not None:
+			plt.savefig(save, dpi=100, bbox_inches = "tight")
 		plt.close()
 
 
@@ -568,7 +577,7 @@ class single_gym(base_class):
 				
 		return
 
-	def diagnostics_first(self, q_true, show=True, save=False, figsize=(18, 12), \
+	def diagnostics_first(self, q_true, show=True, figsize=(18, 12), \
 		plot_E = True, plot_V = False, plot_T = False, plot_flux=True, num_ticks=5,\
 		ft_size = 20, pt_size1=20, save=None):
 		"""
