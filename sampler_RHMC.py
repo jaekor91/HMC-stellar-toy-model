@@ -570,7 +570,7 @@ class single_gym(base_class):
 
 	def diagnostics_first(self, q_true, show=True, save=False, figsize=(18, 12), \
 		plot_E = True, plot_V = False, plot_T = False, plot_flux=True, num_ticks=5,\
-		ft_size = 20, pt_size1=20):
+		ft_size = 20, pt_size1=20, save=None):
 		"""
 		Scatter plot of the first source inference.
 		"""
@@ -647,6 +647,8 @@ class single_gym(base_class):
 
 		if show:
 			plt.show()
+		if save is not None:
+			plt.savefig(save, dpi=100, bbox_inches = "tight")
 		plt.close()
 
 		return 
