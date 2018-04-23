@@ -3,7 +3,7 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps/dt -- Paired
-Nsteps_list = [20, 200, 2000, 20000]
+Nsteps_list = [100, 1000, 10000, 100000]
 # dt_list = [5e-2, 5e-3, 5e-4, 5e-5]
 dt_list = [1e-1, 1e-2, 1e-3, 1e-4]
 
