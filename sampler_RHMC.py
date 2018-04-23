@@ -123,7 +123,7 @@ class base_class(object):
 		#---- Default mag set up
 		self.mB = 23
 		B_count = mag2flux(self.mB) * flux_to_count
-		self.f_lim = mag2flux(self.mB-1.5) * flux_to_count
+		self.f_lim = mag2flux(self.mB) * flux_to_count
 
 		# Size of the image
 		num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
@@ -186,11 +186,10 @@ class base_class(object):
 
 		fmin = self.f_lim
 
-		if fmin > np.abs(f):
+		if fmin > f:
 			f = fmin
 			f_low = True
 		else: 
-			f = np.abs(f)
 			f_low = False
 
 		if not grad:
@@ -209,11 +208,10 @@ class base_class(object):
 		"""
 		fmin = self.f_lim
 
-		if fmin > np.abs(f):
+		if fmin > f:
 			f = fmin
 			f_low = True
 		else: 
-			f = np.abs(f)
 			f_low = False
 
 		if not grad:
