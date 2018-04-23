@@ -524,7 +524,7 @@ class single_gym(base_class):
 					# p-tau update
 					rho = np.copy(p_tmp)
 					dp = np.infty
-					while dP > delta:
+					while dp > delta:
 						p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
 						dp = np.max(np.abs(p_tmp - p_prime))
 						p_tmp = np.copy(p_prime)
