@@ -311,7 +311,7 @@ class base_class(object):
 
 		return grads
 
-	def dphidq(self, q, p):
+	def dphidq(self, q):
 		"""
 		As in the general metric paper.
 		"""
@@ -519,7 +519,7 @@ class single_gym(base_class):
 					H_diag = self.H(q_tmp)
 				elif solver == "implicit":
 					# First update phi-hat
-					p_tmp = p_tmp - self.dt * self.dphidq(q_tmp, p_tmp) / 2.
+					p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 
 					# p-tau update
 					rho = np.copy(p_tmp)
@@ -541,7 +541,7 @@ class single_gym(base_class):
 					p_tmp = p_tmp - self.dt * self.dtaudq(q_tmp, p_tmp) / 2.
 
 					# Last update phi-hat
-					p_tmp = p_tmp - self.dt * self.dphidq(q_tmp, p_tmp) / 2.
+					p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 				else: # If the user input the non-existing solver.
 					assert False
 
