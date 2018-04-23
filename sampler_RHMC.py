@@ -242,6 +242,11 @@ class base_class(object):
 			if not all_f_pos: # If not all f is positive, then return infinity.
 				return np.infty
 
+		for i in xrange(self.Nobjs):
+			x, y = q[3*i+1: 3*i+3]
+			if  (x < 0) or (x > self.num_rows-1) or (y < 0) or (y > self.num_cols-1):
+				return np.infty
+
 		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
 		for i in range(self.Nobjs): # Add every object.
 			f, x, y = q[3*i:3*i+3]
@@ -557,14 +562,17 @@ class single_gym(base_class):
 				# Diagonal H update
 				H_diag = self.H(q_tmp, grad=False)
 
-				# Check for any source with flux < f_lim.
-				iflip = np.zeros(q_tmp.size, dtype=bool)
 				for k in xrange(self.Nobjs):
-					f = q_tmp[3 * k]
+					f, x, y= q_tmp[3 * k : 3 * k + 3]					
+					# ---- Check for any source with flux < f_lim.
 					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
 					if f < self.f_lim: 
 						p_tmp[3 * k] *= -1.
-
+					# ---- Reflect xy momenta if xy outside boundary						
+					if (x < 0) or (x > self.num_rows-1):
+						p_tmp[3 * k + 1] *= -1.
+					if (y < 0) or (y > self.num_cols-1):
+						p_tmp[3 * k + 2] *= -1.
 			else: # If the user input the non-existing solver.
 				assert False
 
