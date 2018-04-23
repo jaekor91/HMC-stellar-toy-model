@@ -473,9 +473,9 @@ class single_gym(base_class):
 		p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
 		self.q_chain[0] = q_initial
 		self.p_chain[0] = p_initial
-		self.V_chain[0] = self.V(q_initial, f_pos=f_pos)
-		self.T_chain[0] = self.T(p_initial, H_diag)
-		self.E_chain[0] = 0. # Since we are saving the difference.
+		V_initial = self.V(q_initial, f_pos=f_pos)
+		T_initial = self.T(p_initial, H_diag)
+		E_initial = V_initial + T_initial
 
 		q_tmp = q_initial
 		p_tmp = p_initial
@@ -564,9 +564,9 @@ class single_gym(base_class):
 			# Store the variables and energy
 			self.q_chain[i] = q_tmp
 			self.p_chain[i] = p_tmp
-			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - self.V_chain[0]
-			self.T_chain[i] = self.T(p_tmp, H_diag) - self.T_chain[0]
-			self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - self.E_chain[0]
+			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_initial
+			self.T_chain[i] = self.T(p_tmp, H_diag) - T_initial
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i] - E_initial
 				
 		return
 
