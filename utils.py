@@ -673,3 +673,6 @@ def factors(num_rows, num_cols, x, y, PSF_FWHM_pix):
     factor2 = np.sum(PSF_sq * (x - lv - 0.5)**2) / float(var**2) # sum of (dPSF/dx)^2
     
     return factor0, factor1, factor2
+
+def gaussian_1D(x, mu=0, sig=1):
+    return np.exp(-np.square(x-mu)/ (2 * sig**2)) / (np.sqrt(2 * np.pi) * sig)
