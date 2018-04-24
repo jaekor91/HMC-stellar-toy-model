@@ -683,3 +683,114 @@ class single_gym(base_class):
 		plt.close()
 
 		return 
+
+
+
+class multi_gym(base_class):
+	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1.):
+		"""
+		Single trajectory simulation.
+		- Nsteps: Number of steps to be taken.
+		- dt: Global time step size factor.
+		- g_xx, g_ff: Factors that scale the momenta.
+		"""
+		# ---- Call the base class constructor
+		base_class.__init__(self, dt = dt, g_xx = g_xx, g_ff = g_ff)
+
+		# ---- Global variables
+		self.Nsteps = Nsteps
+
+		# ---- Place holder for various variables. 
+		self.q_chain = None
+		self.p_chain = None
+		self.E_chain = None
+		self.V_chain = None
+		self.T_chain = None
+
+		return
+
+	def run_RHMC(self, q_model_0=None, f_pos=False, delta=1e-6, p_initial=None):
+		"""
+		Perform Bayesian inference with RHMC with the initial model given as q_model_0.
+		f_pos: Enforce the condition that total flux counts for individual sources be positive.
+
+		If p_initial is not None, then use that as the initial seed.
+		"""
+		#---- Number of objects should have been already determined via optimal step search
+		self.Nobjs = q_model_0.shape[0]
+		self.d = self.Nobjs * 3 # Total dimension of inference
+		q_model_0 =  self.format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
+
+		#---- Allocate storage for variables being inferred.
+		self.q_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
+		self.p_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
+		self.E_chain = np.zeros(self.Nsteps+1)
+		self.V_chain = np.zeros(self.Nsteps+1)
+		self.T_chain = np.zeros(self.Nsteps+1)
+
+		#---- Loop over each step. 
+		# Recall the 0-index corresponds to the intial model.
+		# Set the initial values.
+		q_initial = q_model_0
+		H_diag = self.H(q_initial, grad=False) # 
+		if p_initial is None:
+			p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
+		self.q_chain[0] = q_initial
+		self.p_chain[0] = p_initial
+		V_initial = self.V(q_initial, f_pos=f_pos)
+		T_initial = self.T(p_initial, H_diag)
+		E_initial = V_initial + T_initial
+
+		q_tmp = q_initial
+		p_tmp = p_initial
+
+		#---- Looping over steps
+		for i in xrange(1, self.Nsteps+1, 1):
+			# First update phi-hat
+			p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+
+			# p-tau update
+			rho = np.copy(p_tmp)
+			dp = np.infty
+			while dp > delta:
+				p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
+				dp = np.max(np.abs(p_tmp - p_prime))
+				p_tmp = np.copy(p_prime)
+
+			# q-tau update
+			sig = np.copy(q_tmp)
+			dq = np.infty
+			while dq > delta:
+				q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
+				dq = np.max(np.abs(q_tmp - q_prime))
+				q_tmp = np.copy(q_prime)					
+
+			# p-tau update
+			p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
+
+			# Last update phi-hat
+			p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+
+			# Diagonal H update
+			H_diag = self.H(q_tmp, grad=False)
+
+			for k in xrange(self.Nobjs):
+				f, x, y= q_tmp[3 * k : 3 * k + 3]					
+				# ---- Check for any source with flux < f_lim.
+				# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+				if f < self.f_lim: 
+					p_tmp[3 * k] *= -1.
+				# ---- Reflect xy momenta if xy outside boundary						
+				if (x < 0) or (x > self.num_rows-1):
+					p_tmp[3 * k + 1] *= -1.
+				if (y < 0) or (y > self.num_cols-1):
+					p_tmp[3 * k + 2] *= -1.
+
+			# Store the variables and energy
+			self.q_chain[i] = q_tmp
+			self.p_chain[i] = p_tmp
+			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_initial
+			self.T_chain[i] = self.T(p_tmp, H_diag) - T_initial
+			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
+				
+		return		
