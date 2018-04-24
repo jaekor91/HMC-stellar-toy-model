@@ -48,6 +48,10 @@ class base_class(object):
 		# Compute factors to be used repeatedly.
 		self.compute_factors()
 
+		# Contrast information
+		self.vmin = None
+		self.vmax = None
+
 		return
 
 	def gen_mock_data(self, q_true=None, return_data = False):
@@ -365,14 +369,19 @@ class base_class(object):
 		"""
 		Display the data image
 		"""
+		#---- Contrast
+		# If the user does not provide the contrast
 		if vmin is None:
-			D_raveled = self.D.ravel()
-			self.vmin = np.percentile(D_raveled, 1.)
-			self.vmax = np.percentile(D_raveled, 80.)
-
+			# then check whether there is contrast stored up. If not.
+			if self.vmin is None:
+				D_raveled = self.D.ravel()
+				self.vmin = np.percentile(D_raveled, 1.)
+				self.vmax = np.percentile(D_raveled, 80.)
+			vmin = self.vmin
+			vmax = self.vmax
 
 		fig, ax = plt.subplots(1, figsize = figsize)
-		ax.imshow(self.D,  interpolation="none", cmap="gray", vmin=self.vmin, vmax = self.vmax)
+		ax.imshow(self.D,  interpolation="none", cmap="gray", vmin=vmin, vmax = vmax)
 		yticks = ticker.MaxNLocator(num_ticks)
 		xticks = ticker.MaxNLocator(num_ticks)		
 		ax.yaxis.set_major_locator(yticks)
