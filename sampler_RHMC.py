@@ -76,7 +76,24 @@ class base_class(object):
 		if return_data:
 			return data
 		else:
-			self.D = data            
+			self.D = data
+
+	def gen_model(self, q_model):
+		"""
+		Given model sample (Nobjs, 3) with mag, x, y for each, 
+		generate the model image.
+
+		Gaussian PSF is assumed with the width specified by PSF_FWHM_pix.
+		"""
+		# Generate an image with background.
+		model = np.ones((self.num_rows, self.num_cols), dtype=float) * self.B_count
+
+		# Add one star at a time.
+		for i in xrange(q_model.shape[0]):
+			mag, x, y = q_model[i]
+			model += self.mag2flux_converter(mag) * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM = self.PSF_FWHM_pix)
+
+		return model
 
 	def mag2flux_converter(self, mag):
 		"""
