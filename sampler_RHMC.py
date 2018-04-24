@@ -865,7 +865,7 @@ class multi_gym(base_class):
 					q_tmp = self.q_chain[l]
 
 		# ---- Compute the total acceptance rate.
-		R_accept = np.sum(self.A_chain) / float(self.Niter)
+		R_accept = np.sum(self.A_chain) / float(self.Niter + 1)
 		print "Acceptance rate without warm-up: %.2f %%" % (R_accept * 100)
 		return		
 
