@@ -545,7 +545,7 @@ class single_gym(base_class):
 				rho = np.copy(p_tmp)
 				dp = np.infty
 				counter = 0
-				while (dp > delta) or (counter < counter_max):
+				while (dp > delta) and (counter < counter_max):
 					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
 					dp = np.max(np.abs(p_tmp - p_prime))
 					p_tmp = np.copy(p_prime)
@@ -555,7 +555,7 @@ class single_gym(base_class):
 				sig = np.copy(q_tmp)
 				dq = np.infty
 				counter = 0				
-				while (dq > delta) or (counter < counter_max):
+				while (dq > delta) and (counter < counter_max):
 					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
 					dq = np.max(np.abs(q_tmp - q_prime))
 					q_tmp = np.copy(q_prime)					
@@ -810,7 +810,7 @@ class multi_gym(base_class):
 				rho = np.copy(p_tmp)
 				dp = np.infty
 				counter = 0
-				while (dp > delta) or (counter < counter_max):
+				while (dp > delta) and (counter < counter_max):
 					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
 					dp = np.max(np.abs(p_tmp - p_prime))
 					p_tmp = np.copy(p_prime)
@@ -820,7 +820,7 @@ class multi_gym(base_class):
 				sig = np.copy(q_tmp)
 				dq = np.infty
 				counter = 0				
-				while (dq > delta) or (counter < counter_max):
+				while (dq > delta) and (counter < counter_max):
 					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
 					dq = np.max(np.abs(q_tmp - q_prime))
 					q_tmp = np.copy(q_prime)					
