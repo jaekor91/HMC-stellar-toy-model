@@ -865,13 +865,15 @@ class multi_gym(base_class):
 					q_tmp = self.q_chain[l]
 
 		# ---- Compute the total acceptance rate.
-		R_accept = np.sum(self.A_chain) / float(self.Niter + 1)
-		print "Acceptance rate without warm-up: %.2f %%" % (R_accept * 100)
+		self.R_accept = np.sum(self.A_chain) / float(self.Niter + 1)
+		print "Acceptance rate without warm-up: %.2f %%" % (self.R_accept * 100)
+
 		return		
 
 
 	def diagnostics_first(self, q_true, show=True, figsize=(18, 12), \
-		plot_flux=False, num_ticks=5, ft_size = 20, pt_size1=20, save=None, Nskip=0):
+		plot_flux=False, num_ticks=5, ft_size = 20, pt_size1=20, save=None, Nskip=0, \
+		title_str = None):
 		"""
 		Scatter plot of the first source inference over the entire chain.
 		
@@ -964,6 +966,14 @@ class multi_gym(base_class):
 		ax_list[1, 1].legend(loc="upper right", fontsize=ft_size)
 		ax_list[1, 1].set_xlabel("E", fontsize=ft_size)
 
+		# --- Title
+		Raccept_str = "R_accept: %.2f%%" % (self.R_accept * 100)
+		if title_str is None:
+			title_str = R_accept
+		else:
+			title_str = title_str + "  /  " + R_accept
+		plt.suptitle(title_str, fotnsize = 20)
+		
 		if show:
 			plt.show()
 		if save is not None:
