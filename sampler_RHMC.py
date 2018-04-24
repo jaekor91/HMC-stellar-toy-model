@@ -150,6 +150,16 @@ class base_class(object):
 
 		return q.reshape((q.size, ))
 
+	def reverse_format_q(self, q):
+		"""
+		Reverse process of format_q
+		"""
+		q = q.reshape((self.Nobjs, 3))
+		for i in range(self.Nobjs):
+			q[i, 0] = self.flux2mag_converter(q[i, 0])
+
+		return q
+
 	def H(self, q, grad=False):
 		"""
 		Diagonal matrix that corresponds to q in pi(p|q) = Norm(0, H)
