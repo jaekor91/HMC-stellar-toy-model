@@ -457,7 +457,8 @@ class single_gym(base_class):
 				
 		return
 
-	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", delta=1e-6, p_initial=None):
+	def run_single_RHMC(self, q_model_0=None, f_pos=False, solver="naive", delta=1e-6, p_initial=None,\
+		counter_max = 100):
 		"""
 		Perform Bayesian inference with HMC with the initial model given as q_model_0.
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
@@ -543,18 +544,22 @@ class single_gym(base_class):
 				# p-tau update
 				rho = np.copy(p_tmp)
 				dp = np.infty
-				while dp > delta:
+				counter = 0
+				while (dp > delta) or (counter < counter_max):
 					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
 					dp = np.max(np.abs(p_tmp - p_prime))
 					p_tmp = np.copy(p_prime)
+					counter +=1
 
 				# q-tau update
 				sig = np.copy(q_tmp)
 				dq = np.infty
-				while dq > delta:
+				counter = 0				
+				while (dq > delta) or (counter < counter_max):
 					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
 					dq = np.max(np.abs(q_tmp - q_prime))
 					q_tmp = np.copy(q_prime)					
+					counter +=1		
 
 				# p-tau update
 				p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
@@ -711,13 +716,14 @@ class multi_gym(base_class):
 		return
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
-				dt = 1e-1, save_traj=False):
+				dt = 1e-1, save_traj=False, counter_max = 1000):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
 		- f_pos: Enforce the condition that total flux counts for individual sources be positive.
 		- If p_initial is not None, then use that as the initial seed.
 		- save_traj: If True, save the intermediate 
+		- counter_max: Maximum number to try to converge at a solution.
 
 		Convention:
 		- q_model_0 is used as the first point.
@@ -803,18 +809,22 @@ class multi_gym(base_class):
 				# p-tau update
 				rho = np.copy(p_tmp)
 				dp = np.infty
-				while dp > delta:
+				counter = 0
+				while (dp > delta) or (counter < counter_max):
 					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
 					dp = np.max(np.abs(p_tmp - p_prime))
 					p_tmp = np.copy(p_prime)
+					counter +=1
 
 				# q-tau update
 				sig = np.copy(q_tmp)
 				dq = np.infty
-				while dq > delta:
+				counter = 0				
+				while (dq > delta) or (counter < counter_max):
 					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
 					dq = np.max(np.abs(q_tmp - q_prime))
 					q_tmp = np.copy(q_prime)					
+					counter +=1					
 
 				# p-tau update
 				p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
