@@ -171,7 +171,7 @@ class base_class(object):
 		"""
 		Reverse process of format_q
 		"""
-		q = q.reshape((self.Nobjs, 3))
+		q = np.copy(q.reshape((self.Nobjs, 3)))
 		for i in range(self.Nobjs):
 			q[i, 0] = self.flux2mag_converter(q[i, 0])
 
