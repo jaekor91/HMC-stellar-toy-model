@@ -710,7 +710,7 @@ class multi_gym(base_class):
 
 		return
 
-	def run_RHMC(self, q_model_0=None, f_pos=False, delta=1e-6, Niter = 100, Nsteps=100,\
+	def run_RHMC(self, q_model_0, f_pos=False, delta=1e-6, Niter = 100, Nsteps=100,\
 				dt = 1e-1, save_traj=False):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
