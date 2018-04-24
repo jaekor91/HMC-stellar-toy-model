@@ -762,7 +762,8 @@ class multi_gym(base_class):
 			self.E_chain = np.zeros(self.Niter+1)
 			self.V_chain = np.zeros(self.Niter+1)
 			self.T_chain = np.zeros(self.Niter+1)
-
+		self.A_chain = np.zeros(self.Niter+1, dtype=bool)
+		
 		#---- Set the very first initial point.
 		q_tmp = np.copy(q_model_0)
 
