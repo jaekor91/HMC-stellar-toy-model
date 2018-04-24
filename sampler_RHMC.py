@@ -360,12 +360,19 @@ class base_class(object):
 
 		return p / H_diag
 
-	def display_image(self, show=True, save=None, figsize=(5, 5), num_ticks = 6):
-		fig, ax = plt.subplots(1, figsize = figsize)
+	def display_image(self, show=True, save=None, figsize=(5, 5), num_ticks = 6, \
+			vmin=None, vmax=None):
 		"""
 		Display the data image
 		"""
-		ax.imshow(self.D,  interpolation="none", cmap="gray")
+		if vmin is None:
+			D_raveled = self.D.ravel()
+			self.vmin = np.percentile(D_raveled, 1.)
+			self.vmax = np.percentile(D_raveled, 80.)
+
+
+		fig, ax = plt.subplots(1, figsize = figsize)
+		ax.imshow(self.D,  interpolation="none", cmap="gray", vmin=self.vmin, vmax = self.vmax)
 		yticks = ticker.MaxNLocator(num_ticks)
 		xticks = ticker.MaxNLocator(num_ticks)		
 		ax.yaxis.set_major_locator(yticks)
