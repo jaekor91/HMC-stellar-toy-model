@@ -710,17 +710,22 @@ class multi_gym(base_class):
 
 		return
 
-	def run_RHMC(self, q_model_0=None, f_pos=False, delta=1e-6, p_initial=None,
-			Niter = 100, Nsteps=100, dt = 1e-1, save_traj=False):
+	def run_RHMC(self, q_model_0=None, f_pos=False, delta=1e-6, Niter = 100, Nsteps=100,\
+				dt = 1e-1, save_traj=False):
 		"""
-		Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
+		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
+		- f_pos: Enforce the condition that total flux counts for individual sources be positive.
+		- If p_initial is not None, then use that as the initial seed.
+		- save_traj: If True, save the intermediate 
 
-		f_pos: Enforce the condition that total flux counts for individual sources be positive.
-
-		If p_initial is not None, then use that as the initial seed.
-
-		save_traj: If True, save the intermediate 
+		Convention:
+		- q_model_0 is used as the first point.
+		- In each iteration
+			- There are Nsteps evaluation, leading to Nsteps+1 points collected.
+		- The initial energy is saved.
+		- Accept/reject index conicides with the Niter index. If a particular trajectory is accepted,
+		then accepted point will appear as the first point of the next iteration.
 
 		Note: 
 		- Current version only runs a single chain. Multiple chains can be added later
@@ -743,7 +748,7 @@ class multi_gym(base_class):
 		# The intial point is saved in the zero index of the first axis.
 		# The last point is saved in the last index of the first axis.
 		if save_traj:
-			# Note that for the Niter+1 sample does not go through steps.
+			# Note that for the (Niter+1)-th sample does not go through steps.
 			# The last point in an iteration is the same the first point in the next iteration if the proposal is accepted.
 			self.q_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
 			self.p_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
@@ -751,41 +756,43 @@ class multi_gym(base_class):
 			self.V_chain = np.zeros((self.Niter+1, self.Nsteps+1))
 			self.T_chain = np.zeros((self.Niter+1, self.Nsteps+1))
 		else:
+			# Save the first point energy.			
 			self.q_chain = np.zeros((self.Niter+1, self.Nobjs * 3))
 			self.p_chain = np.zeros((self.Niter+1, self.Nobjs * 3))
 			self.E_chain = np.zeros(self.Niter+1)
 			self.V_chain = np.zeros(self.Niter+1)
 			self.T_chain = np.zeros(self.Niter+1)
 
-		#---- Save/set the initial point
-		q_initial = q_model_0
-		H_diag = self.H(q_initial, grad=False) # 
-		if p_initial is None:
-			p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
-
-		# Compute energies
-		V_initial = self.V(q_initial, f_pos=f_pos)
-		T_initial = self.T(p_initial, H_diag)
-		E_initial = V_initial + T_initial			
-
-		if save_traj:
-			self.q_chain[0, 0] = q_initial
-			self.p_chain[0, 0] = p_initial
-			self.V_chain[0, 0] = V_initial
-			self.E_chain[0, 0] = E_initial
-			self.T_chain[0, 0] = T_initial			
-		else:
-			self.q_chain[0] = q_initial
-			self.p_chain[0] = p_initial
-			self.V_chain[0] = V_initial
-			self.E_chain[0] = E_initial
-			self.T_chain[0] = T_initial
-
-		q_tmp = q_initial
-		p_tmp = p_initial			
+		#---- Set the very first initial point.
+		q_tmp = np.copy(q_model_0)
 
 		#---- Perform the iterations
 		for l in xrange(self.Niter+1):
+			# The initial q_tmp has already been set at the end of the previous run.			
+			# Resample momentum
+			H_diag = self.H(q_tmp, grad=False)
+			p_tmp = self.u_sample(self.d) * np.sqrt(H_diag)
+
+			# Compute the initial energies
+			V_initial = self.V(q_tmp, f_pos=f_pos)
+			T_initial = self.T(p_tmp, H_diag)
+			E_initial = V_initial + T_initial # Necessary to save to compute dE
+
+			#---- Save the initial point and energies
+			if save_traj:
+				self.q_chain[l, 0] = q_tmp
+				self.p_chain[l, 0] = p_tmp
+				self.V_chain[l, 0] = V_initial
+				self.E_chain[l, 0] = E_initial
+				self.T_chain[l, 0] = T_initial			
+			else:
+				# Only time energy is saved in the whole iteration.
+				self.q_chain[l] = q_tmp
+				self.p_chain[l] = p_tmp
+				self.V_chain[l] = V_initial
+				self.E_chain[l] = E_initial
+				self.T_chain[l] = T_initial
+
 			#---- Looping over steps
 			for i in xrange(1, self.Nsteps+1, 1):
 				# First update phi-hat
@@ -813,9 +820,7 @@ class multi_gym(base_class):
 				# Last update phi-hat
 				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 
-				# Diagonal H update
-				H_diag = self.H(q_tmp, grad=False)
-
+				# Boundary condition checks
 				for k in xrange(self.Nobjs):
 					f, x, y= q_tmp[3 * k : 3 * k + 3]					
 					# ---- Check for any source with flux < f_lim.
@@ -828,11 +833,32 @@ class multi_gym(base_class):
 					if (y < 0) or (y > self.num_cols-1):
 						p_tmp[3 * k + 2] *= -1.
 
-				# Store the variables and energy
-				self.q_chain[i] = q_tmp
-				self.p_chain[i] = p_tmp
-				self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_initial
-				self.T_chain[i] = self.T(p_tmp, H_diag) - T_initial
-				self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
-				
+				# Intermediate variables save if asked
+				if save_traj:
+					# Diagonal H update
+					H_diag = self.H(q_tmp, grad=False)
+					self.q_chain[l, i] = q_tmp
+					self.p_chain[l, i] = p_tmp
+					self.V_chain[l, i] = self.V(q_tmp, f_pos=f_pos)
+					self.T_chain[l, i] = self.T(p_tmp, H_diag)
+					self.E_chain[l, i] = self.V_chain[l, i] + self.T_chain[l, i]
+
+			# Compute the energy difference between the initial and the final energy
+			if save_traj: # If the energy has been already saved.
+				E_final = self.E_chain[l, -1]
+			else:
+				H_diag = self.H(q_tmp, grad=False)				
+				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+			dE = E_final - E_initial
+
+			# Accept or reject and set the next initial point accordingly.
+			lnu = np.log(np.random.random(1))
+			if (dE < 0) or (lnu < -dE): # If accepted.
+				self.A_chain[l] = 1
+			else: # Otherwise, proposal rejected.
+				# Reseting the position variable to the previous.
+				if save_traj:
+					q_tmp = self.q_chain[l, 0]
+				else:
+					q_tmp = self.q_chain[l]
 		return		
