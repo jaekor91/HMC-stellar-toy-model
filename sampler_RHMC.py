@@ -723,6 +723,8 @@ class multi_gym(base_class):
 		save_traj: If True, save the intermediate 
 
 		Note: 
+		- Current version only runs a single chain. Multiple chains can be added later
+		or obtained by calling this function multiple times.
 		- No thinning or burn-in is applied. All of these can be done post-hoc.
 		- Nsteps is fixed from iteration to iteration.
 		- Total number of samples is Niter + 1, where 1 is for the initial point.
@@ -742,6 +744,7 @@ class multi_gym(base_class):
 		# The last point is saved in the last index of the first axis.
 		if save_traj:
 			# Note that for the Niter+1 sample does not go through steps.
+			# The last point in an iteration is the same the first point in the next iteration if the proposal is accepted.
 			self.q_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
 			self.p_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
 			self.E_chain = np.zeros((self.Niter+1, self.Nsteps+1))
@@ -754,70 +757,82 @@ class multi_gym(base_class):
 			self.V_chain = np.zeros(self.Niter+1)
 			self.T_chain = np.zeros(self.Niter+1)
 
-
-		#---- Loop over each step. 
-		# Recall the 0-index corresponds to the intial model.
-		# Set the initial values.
+		#---- Save/set the initial point
 		q_initial = q_model_0
 		H_diag = self.H(q_initial, grad=False) # 
 		if p_initial is None:
 			p_initial = self.u_sample(self.d) * np.sqrt(H_diag)
-		self.q_chain[0] = q_initial
-		self.p_chain[0] = p_initial
+
+		# Compute energies
 		V_initial = self.V(q_initial, f_pos=f_pos)
 		T_initial = self.T(p_initial, H_diag)
-		E_initial = V_initial + T_initial
+		E_initial = V_initial + T_initial			
+
+		if save_traj:
+			self.q_chain[0, 0] = q_initial
+			self.p_chain[0, 0] = p_initial
+			self.V_chain[0, 0] = V_initial
+			self.E_chain[0, 0] = E_initial
+			self.T_chain[0, 0] = T_initial			
+		else:
+			self.q_chain[0] = q_initial
+			self.p_chain[0] = p_initial
+			self.V_chain[0] = V_initial
+			self.E_chain[0] = E_initial
+			self.T_chain[0] = T_initial
 
 		q_tmp = q_initial
-		p_tmp = p_initial
+		p_tmp = p_initial			
 
-		#---- Looping over steps
-		for i in xrange(1, self.Nsteps+1, 1):
-			# First update phi-hat
-			p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+		#---- Perform the iterations
+		for l in xrange(self.Niter+1):
+			#---- Looping over steps
+			for i in xrange(1, self.Nsteps+1, 1):
+				# First update phi-hat
+				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 
-			# p-tau update
-			rho = np.copy(p_tmp)
-			dp = np.infty
-			while dp > delta:
-				p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
-				dp = np.max(np.abs(p_tmp - p_prime))
-				p_tmp = np.copy(p_prime)
+				# p-tau update
+				rho = np.copy(p_tmp)
+				dp = np.infty
+				while dp > delta:
+					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
+					dp = np.max(np.abs(p_tmp - p_prime))
+					p_tmp = np.copy(p_prime)
 
-			# q-tau update
-			sig = np.copy(q_tmp)
-			dq = np.infty
-			while dq > delta:
-				q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
-				dq = np.max(np.abs(q_tmp - q_prime))
-				q_tmp = np.copy(q_prime)					
+				# q-tau update
+				sig = np.copy(q_tmp)
+				dq = np.infty
+				while dq > delta:
+					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
+					dq = np.max(np.abs(q_tmp - q_prime))
+					q_tmp = np.copy(q_prime)					
 
-			# p-tau update
-			p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
+				# p-tau update
+				p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
 
-			# Last update phi-hat
-			p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+				# Last update phi-hat
+				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
 
-			# Diagonal H update
-			H_diag = self.H(q_tmp, grad=False)
+				# Diagonal H update
+				H_diag = self.H(q_tmp, grad=False)
 
-			for k in xrange(self.Nobjs):
-				f, x, y= q_tmp[3 * k : 3 * k + 3]					
-				# ---- Check for any source with flux < f_lim.
-				# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-				if f < self.f_lim: 
-					p_tmp[3 * k] *= -1.
-				# ---- Reflect xy momenta if xy outside boundary						
-				if (x < 0) or (x > self.num_rows-1):
-					p_tmp[3 * k + 1] *= -1.
-				if (y < 0) or (y > self.num_cols-1):
-					p_tmp[3 * k + 2] *= -1.
+				for k in xrange(self.Nobjs):
+					f, x, y= q_tmp[3 * k : 3 * k + 3]					
+					# ---- Check for any source with flux < f_lim.
+					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+					if f < self.f_lim: 
+						p_tmp[3 * k] *= -1.
+					# ---- Reflect xy momenta if xy outside boundary						
+					if (x < 0) or (x > self.num_rows-1):
+						p_tmp[3 * k + 1] *= -1.
+					if (y < 0) or (y > self.num_cols-1):
+						p_tmp[3 * k + 2] *= -1.
 
-			# Store the variables and energy
-			self.q_chain[i] = q_tmp
-			self.p_chain[i] = p_tmp
-			self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_initial
-			self.T_chain[i] = self.T(p_tmp, H_diag) - T_initial
-			self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
+				# Store the variables and energy
+				self.q_chain[i] = q_tmp
+				self.p_chain[i] = p_tmp
+				self.V_chain[i] = self.V(q_tmp, f_pos=f_pos) - V_initial
+				self.T_chain[i] = self.T(p_tmp, H_diag) - T_initial
+				self.E_chain[i] = self.V_chain[i] + self.T_chain[i]
 				
 		return		
