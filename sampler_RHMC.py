@@ -722,7 +722,10 @@ class multi_gym(base_class):
 
 		save_traj: If True, save the intermediate 
 
-		Note: No thinning is applied.
+		Note: 
+		- No thinning or burn-in is applied. All of these can be done post-hoc.
+		- Nsteps is fixed from iteration to iteration.
+		- Total number of samples is Niter + 1, where 1 is for the initial point.
 		"""
 		#---- Set global variables
 		self.dt = dt
@@ -735,11 +738,22 @@ class multi_gym(base_class):
 		q_model_0 =  self.format_q(q_model_0) # Converter the magnitude to flux counts and reformat the array.
 
 		#---- Allocate storage for variables being inferred.
-		self.q_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
-		self.p_chain = np.zeros((self.Nsteps+1, self.Nobjs * 3))
-		self.E_chain = np.zeros(self.Nsteps+1)
-		self.V_chain = np.zeros(self.Nsteps+1)
-		self.T_chain = np.zeros(self.Nsteps+1)
+		# The intial point is saved in the zero index of the first axis.
+		# The last point is saved in the last index of the first axis.
+		if save_traj:
+			# Note that for the Niter+1 sample does not go through steps.
+			self.q_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
+			self.p_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
+			self.E_chain = np.zeros((self.Niter+1, self.Nsteps+1))
+			self.V_chain = np.zeros((self.Niter+1, self.Nsteps+1))
+			self.T_chain = np.zeros((self.Niter+1, self.Nsteps+1))
+		else:
+			self.q_chain = np.zeros((self.Niter+1, self.Nobjs * 3))
+			self.p_chain = np.zeros((self.Niter+1, self.Nobjs * 3))
+			self.E_chain = np.zeros(self.Niter+1)
+			self.V_chain = np.zeros(self.Niter+1)
+			self.T_chain = np.zeros(self.Niter+1)
+
 
 		#---- Loop over each step. 
 		# Recall the 0-index corresponds to the intial model.
