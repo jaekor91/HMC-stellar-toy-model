@@ -738,6 +738,7 @@ class multi_gym(base_class):
 		self.dt = dt
 		self.Niter = Niter
 		self.Nsteps = Nsteps
+		self.save_traj = save_traj
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
@@ -763,7 +764,7 @@ class multi_gym(base_class):
 			self.V_chain = np.zeros(self.Niter+1)
 			self.T_chain = np.zeros(self.Niter+1)
 		self.A_chain = np.zeros(self.Niter+1, dtype=bool)
-		
+
 		#---- Set the very first initial point.
 		q_tmp = np.copy(q_model_0)
 
@@ -862,4 +863,8 @@ class multi_gym(base_class):
 					q_tmp = self.q_chain[l, 0]
 				else:
 					q_tmp = self.q_chain[l]
+
+		# ---- Compute the total acceptance rate.
+		R_accept = np.sum(self.A_chain) / float(self.Niter)
+		print "Acceptance rate without warm-up: %.2f %%" % (R_accept * 100)
 		return		
