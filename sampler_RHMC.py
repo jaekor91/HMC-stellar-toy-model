@@ -900,6 +900,7 @@ class multi_gym(base_class):
 				F = self.flux2mag_converter(self.q_chain[Nskip:, 0])
 				F_true = q_true[0, 0]
 			E = self.E_chain[Nskip:]
+			A = self.A_chain[Nskip:]
 
 		# ---- Min Max
 		Xmin, Xmax = np.min(X), np.max(X)
@@ -967,13 +968,14 @@ class multi_gym(base_class):
 		ax_list[1, 1].set_xlabel("E", fontsize=ft_size)
 
 		# --- Title
-		Raccept_str = "R_accept: %.2f%%" % (self.R_accept * 100)
+		R_accept = np.sum(A) / float(self.Niter - Nskip + 1)
+		Raccept_str = "R_accept: %.2f%%" % (R_accept * 100)
 		if title_str is None:
-			title_str = R_accept
+			title_str = Raccept_str
 		else:
-			title_str = title_str + "  /  " + R_accept
-		plt.suptitle(title_str, fotnsize = 20)
-		
+			title_str = title_str + "  /  " + Raccept_str
+		plt.suptitle(title_str, fontsize = 20)
+
 		if show:
 			plt.show()
 		if save is not None:
