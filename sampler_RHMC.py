@@ -868,3 +868,106 @@ class multi_gym(base_class):
 		R_accept = np.sum(self.A_chain) / float(self.Niter)
 		print "Acceptance rate without warm-up: %.2f %%" % (R_accept * 100)
 		return		
+
+
+	def diagnostics_first(self, q_true, show=True, figsize=(18, 12), \
+		plot_flux=False, num_ticks=5, ft_size = 20, pt_size1=20, save=None, Nskip=0):
+		"""
+		Scatter plot of the first source inference over the entire chain.
+		
+		Nskip: Number of samples to skip
+		"""
+		#---- Extracting the proper points
+		if self.save_traj:
+			X = self.q_chain[Nskip:, 0, 1]
+			Y = self.q_chain[Nskip:, 0, 2]
+			if plot_flux:
+				F = self.q_chain[Nskip:, 0, 0]
+				F_true = self.mag2flux_converter(q_true[0, 0])
+			else:
+				F = self.flux2mag_converter(self.q_chain[Nskip:, 0, 0])
+				F_true = q_true[0, 0]
+			E = self.E_chain[Nskip:, 0]
+		else:
+			X = self.q_chain[Nskip:, 1]
+			Y = self.q_chain[Nskip:, 2]
+			if plot_flux:
+				F = self.q_chain[Nskip:, 0]
+				F_true = self.mag2flux_converter(q_true[0, 0])
+			else:
+				F = self.flux2mag_converter(self.q_chain[Nskip:, 0])
+				F_true = q_true[0, 0]
+			E = self.E_chain[Nskip:]
+
+		# ---- Min Max
+		Xmin, Xmax = np.min(X), np.max(X)
+		Ymin, Ymax = np.min(Y), np.max(Y)
+
+		fig, ax_list = plt.subplots(2, 2, figsize=figsize)
+		ax_list[0, 0].axis("equal")
+		if (Xmin < 0) or (Xmax > self.num_rows - 1) or (Ymin < 0) or (Ymax > self.num_cols - 1):
+			ax_list[0, 0].set_xlim([0, self.num_rows-1])
+			ax_list[0, 0].set_ylim([0, self.num_cols-1])
+
+		# ---- Joining certain axis
+		ax_list[0, 0].get_shared_x_axes().join(ax_list[0, 0], ax_list[1, 0])
+		ax_list[0, 0].get_shared_y_axes().join(ax_list[0, 0], ax_list[0, 1])
+
+		# ---- XY plot
+		ax_list[0, 0].scatter(Y, X, c="black", s=pt_size1, edgecolor="none")
+		ax_list[0, 0].scatter([Y[0]], [X[0]], c="red", s=100, edgecolor="none")
+		ax_list[0, 0].scatter([q_true[0, 2]], [q_true[0, 1]], c="green", s=200, edgecolor="none")    
+		ax_list[0, 0].set_xlabel("Y", fontsize=ft_size)
+		ax_list[0, 0].set_ylabel("X", fontsize=ft_size)
+		yticks00 = ticker.MaxNLocator(num_ticks)
+		xticks00 = ticker.MaxNLocator(num_ticks)
+		ax_list[0, 0].yaxis.set_major_locator(yticks00)
+		ax_list[0, 0].xaxis.set_major_locator(xticks00)
+
+		# --- Flux - Y
+		ax_list[1, 0].scatter(Y, F, c="black", s=pt_size1, edgecolor="none")
+		ax_list[1, 0].axhline(y = F_true, c="red", lw=2., ls="--")
+		ax_list[1, 0].scatter([Y[0]], [F[0]], c="red", s=100, edgecolor="none")
+		ax_list[1, 0].scatter([q_true[0, 2]], [q_true[0, 0]], c="green", s=200, edgecolor="none")    
+		if plot_flux:
+			ax_list[1, 0].set_ylabel("Flux", fontsize=ft_size)
+		else:
+			ax_list[1, 0].set_ylabel("Mag", fontsize=ft_size)
+		ax_list[1, 0].set_xlabel("Y", fontsize=ft_size)
+		yticks10 = ticker.MaxNLocator(num_ticks)
+		xticks10 = ticker.MaxNLocator(num_ticks)
+		ax_list[1, 0].yaxis.set_major_locator(yticks10)
+		ax_list[1, 0].xaxis.set_major_locator(xticks10)
+
+		# --- Flux - X 
+		ax_list[0, 1].scatter(F, X, c="black", s=pt_size1, edgecolor="none")
+		ax_list[0, 1].axvline(x = F_true, c="red", lw=2., ls="--")
+		ax_list[0, 1].scatter([q_true[0, 0]], [q_true[0, 1]], c="green", s=200, edgecolor="none")    
+		ax_list[0, 1].scatter([F[0]], [X[0]], c="red", s=100, edgecolor="none")
+		if plot_flux:
+			ax_list[0, 1].set_xlabel("Flux", fontsize=ft_size)
+		else:
+			ax_list[0, 1].set_xlabel("Mag", fontsize=ft_size)
+		ax_list[0, 1].set_ylabel("X", fontsize=ft_size)
+		yticks01 = ticker.MaxNLocator(num_ticks)
+		xticks01 = ticker.MaxNLocator(num_ticks)
+		ax_list[0, 1].yaxis.set_major_locator(yticks01)
+		ax_list[0, 1].xaxis.set_major_locator(xticks01)
+
+		# --- Energy histograms
+		# Marginal energy distribution
+		Emean = np.mean(E)
+		ax_list[1, 1].hist(E-Emean, bins=50, label="E", histtype="step", lw=2, color="blue")
+		# Transition energy distribution
+		dE = E[1:] - E[:-1]
+		ax_list[1, 1].hist(dE, bins=50, label="dE", histtype="step", lw=2, color="black")
+		ax_list[1, 1].legend(loc="upper right", fontsize=ft_size)
+		ax_list[1, 1].set_xlabel("E", fontsize=ft_size)
+
+		if show:
+			plt.show()
+		if save is not None:
+			plt.savefig(save, dpi=100, bbox_inches = "tight")
+		plt.close()
+
+		return 		
