@@ -706,16 +706,29 @@ class multi_gym(base_class):
 		self.E_chain = None
 		self.V_chain = None
 		self.T_chain = None
+		self.A_chain = None # Accepted or not. The initial point deemed accepted by default.
 
 		return
 
-	def run_RHMC(self, q_model_0=None, f_pos=False, delta=1e-6, p_initial=None):
+	def run_RHMC(self, q_model_0=None, f_pos=False, delta=1e-6, p_initial=None,
+			Niter = 100, Nsteps=100, dt = 1e-1, save_traj=False):
 		"""
-		Perform Bayesian inference with RHMC with the initial model given as q_model_0.
+		Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
+		q_model_0 given in (Nobjs, 3) format.
+
 		f_pos: Enforce the condition that total flux counts for individual sources be positive.
 
 		If p_initial is not None, then use that as the initial seed.
+
+		save_traj: If True, save the intermediate 
+
+		Note: No thinning is applied.
 		"""
+		#---- Set global variables
+		self.dt = dt
+		self.Niter = Niter
+		self.Nsteps = Nsteps
+
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
 		self.d = self.Nobjs * 3 # Total dimension of inference
