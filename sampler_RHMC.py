@@ -1037,7 +1037,7 @@ class multi_gym(base_class):
 
 		return
 
-	def diagnostics_all(self, idx_iter = -1, idx_step = None, figsize = (16, 11), \
+	def diagnostics_all(self, q_true, idx_iter = -1, idx_step = None, figsize = (16, 11), \
 	                    color_truth="red", color_model="blue", ft_size = 15, num_ticks = 5):
 	    """
 	    - idx_iter: Index of the iteration to plot.
