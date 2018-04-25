@@ -1050,7 +1050,7 @@ class multi_gym(base_class):
 	def diagnostics_all(self, q_true, idx_iter = -1, idx_step = None, figsize = (16, 11), \
 						color_truth="red", color_model="blue", ft_size = 15, num_ticks = 5, \
 						show=False, save=None, title_str = None, vmin=None, vmax=None,\
-						m=-30, b =20, s0=23, y_min=10):
+						m=-30, b =20, s0=23, y_min=10, m_min = 14.5, m_max = 25.):
 		"""
 		- idx_iter: Index of the iteration to plot.
 		- idx_step: Iddex of the step to plot. (Only applicable if save_traj = True.)
@@ -1116,6 +1116,7 @@ class multi_gym(base_class):
 		ax_list[0, 1].axvline(x=self.flux2mag_converter(self.f_lim), c="green", lw=1.5, ls="--")
 		ax_list[0, 1].set_ylabel("X", fontsize=ft_size)
 		ax_list[0, 1].set_xlabel("Mag", fontsize=ft_size)
+		ax_list[0, 1].set_xlim([m_min, m_max])		
 		yticks10 = ticker.MaxNLocator(num_ticks)
 		xticks10 = ticker.MaxNLocator(num_ticks)
 		ax_list[0, 1].yaxis.set_major_locator(yticks10)
@@ -1129,6 +1130,7 @@ class multi_gym(base_class):
 		ax_list[1, 0].axhline(y=self.flux2mag_converter(self.f_lim), c="green", lw=1.5, ls="--")
 		ax_list[1, 0].set_ylabel("Mag", fontsize=ft_size)
 		ax_list[1, 0].set_xlabel("Y", fontsize=ft_size)
+		ax_list[1, 0].set_ylim([m_min, m_max])		
 		yticks10 = ticker.MaxNLocator(num_ticks)
 		xticks10 = ticker.MaxNLocator(num_ticks)
 		ax_list[1, 0].yaxis.set_major_locator(yticks10)
