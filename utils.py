@@ -457,55 +457,18 @@ def integrate_pow_law(alpha, A, fmin, fmax):
     return A * (fmax**(1 + alpha) - fmin**(1 + alpha))/(1 + alpha)
 
 
-def gen_pow_law_sample(fmin, nsample, alpha, exact=False, fmax=None, importance_sampling=False, alpha_importance=None):
+def gen_pow_law_sample(alpha, fmin, fmax, Nsample=1):
     """
-    Note the convention f**alpha, alpha < 0
+    Draw samples from power law distribution f**-alpha 
+    and fmin and fmax provided.
     
-    If exact, then return nsample number of sample exactly between fmin and fmax.
-
-    If importance_sampling, then generate the samples using the alpha_importance,
-    and return the corresponding importance weights along with the sample.
-    iw = f_sample^(alpha-alpha_importance)
+    Alphat must be greater than 1, otherwise the magnitude histogram will look funky!
     """
-    flux = None
-    if importance_sampling:
-        if exact:
-            assert (fmax is not None)
-            flux = fmin * np.exp(np.log(np.random.rand(nsample))/(alpha_importance+1))
-            ibool = (flux>fmin) & (flux<fmax)
-            flux = flux[ibool]
-            nsample_counter = np.sum(ibool)
-            while nsample_counter < nsample:
-                flux_tmp = fmin * np.exp(np.log(np.random.rand(nsample))/(alpha_importance+1))
-                ibool = (flux_tmp>fmin) & (flux_tmp<fmax)
-                flux_tmp = flux_tmp[ibool]
-                nsample_counter += np.sum(ibool)
-                flux = np.concatenate((flux, flux_tmp))
-            flux = flux[:nsample]# np.random.choice(flux, nsample, replace=False)
-            iw = flux**(alpha-alpha_importance)
-        else:
-            pass
-
-        return flux, iw
-    else:
-        if exact:
-            assert (fmax is not None)
-            flux = fmin * np.exp(np.log(np.random.rand(nsample))/(alpha+1))
-            ibool = (flux>fmin) & (flux<fmax)
-            flux = flux[ibool]
-            nsample_counter = np.sum(ibool)
-            while nsample_counter < nsample:
-                flux_tmp = fmin * np.exp(np.log(np.random.rand(nsample))/(alpha+1))
-                ibool = (flux_tmp>fmin) & (flux_tmp<fmax)
-                flux_tmp = flux_tmp[ibool]
-                nsample_counter += np.sum(ibool)
-                flux = np.concatenate((flux, flux_tmp))
-            flux = flux[:nsample]# np.random.choice(flux, nsample, replace=False)
-        else:
-            assert False # This mode is not supported.
-            # flux = fmin * np.exp(np.log(np.random.rand(nsample))/(alpha+1))
-        
-        return flux
+    assert (alpha > 1)
+    alpha = float(alpha)
+    u = np.random.random(size=Nsample)
+    lmbda = fmin**(1-alpha) + u * (fmax**(1-alpha) - fmin**(1-alpha))
+    return np.exp(np.log(lmbda) / (1-alpha))
 
 
 
