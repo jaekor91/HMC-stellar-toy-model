@@ -759,7 +759,7 @@ class multi_gym(base_class):
 		return
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
-				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False):
+				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False, q_true=None):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
@@ -921,6 +921,10 @@ class multi_gym(base_class):
 				R_accept = np.sum(self.A_chain[l-10:l]) / float(10)
 				print "/---- Iteration: %d" % l
 				print "Acceptance rate so far: %.2f %%" % (R_accept * 100)
+
+				# Produce a diagnostic plot
+				self.diagnostics_all(q_true, show=False, idx_iter = l, idx_step=0, save="iter-%d.png" % l,\
+                   m=-15, b =10, s0=23, y_min=5.)				
 
 
 		# ---- Compute the total acceptance rate.
