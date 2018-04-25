@@ -1045,8 +1045,14 @@ class multi_gym(base_class):
 		- idx_step: Iddex of the step to plot. (Only applicable if save_traj = True.)
 		"""
 		# Contrast
-		vmin = self.vmin
-		vmax = self.vmax
+		if vmin is None:
+			# then check whether there is contrast stored up. If not.
+			if self.vmin is None:
+				D_raveled = self.D.ravel()
+				self.vmin = np.percentile(D_raveled, 1.)
+				self.vmax = np.percentile(D_raveled, 80.)
+			vmin = self.vmin
+			vmax = self.vmax
 
 		# Obtain the model q
 		if self.save_traj:
