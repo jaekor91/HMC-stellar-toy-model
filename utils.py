@@ -649,6 +649,12 @@ def plot_range(x, factor = 2.):
     
     return x_min, x_max
 
+def linear_func(s, m=-30, b = 20, s0=21, y_min = 5):
+    if type(s) == np.ndarray:
+        return np.min(m*(s-s0) + b, y_min)
+    else:
+        return min(m*(s-s0) + b, y_min)
+
 
 
 def factors(num_rows, num_cols, x, y, PSF_FWHM_pix):
