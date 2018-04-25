@@ -1168,8 +1168,8 @@ class multi_gym(base_class):
 		if title_str is not None:
 			plt.suptitle(title_str, fontsize=25)
 
-		if show:
-			plt.show()
 		if save is not None:
 			plt.savefig(save, dpi=100, bbox_inches = "tight")
+		if show:
+			plt.show()			
 		plt.close()
