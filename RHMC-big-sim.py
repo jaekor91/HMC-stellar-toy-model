@@ -2,16 +2,17 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 50
-Niter = 3000
+Nsteps = 10
+Niter = 1000
+dt = 2e-2
 
 gym = multi_gym(dt=0., Nsteps=0, g_xx=1., g_ff=1.)
 
 # --- Multiple stars
 np.random.seed(0)
-gym.num_rows = gym.num_cols = 48
+gym.num_rows = gym.num_cols = 32
 Nobjs = 100
-Nobjs_model = 200
+Nobjs_model = 150
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
@@ -51,13 +52,13 @@ gym.display_image()
 
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
-             dt = 2e-3, save_traj=True, verbose=True, q_true = q_true)
+             dt = dt, save_traj=True, verbose=True, q_true = q_true)
 
 
 
 save_dir = "./RHMC-movie/"
 counter = 0
-for i in xrange(0, 3000):
+for i in xrange(0, Niter+1):
     for j in xrange(Nsteps+1):
         title_str = "Niter%05d-Step%03d" % (i, j)
         fname = save_dir + "slide-%07d" % counter
