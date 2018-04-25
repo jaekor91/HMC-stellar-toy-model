@@ -144,7 +144,7 @@ class base_class(object):
 		#---- Default mag set up
 		self.mB = 23
 		B_count = mag2flux(self.mB) * flux_to_count
-		self.f_lim = mag2flux(self.mB+3) * flux_to_count
+		self.f_lim = mag2flux(self.mB+2) * flux_to_count
 
 		# Size of the image
 		num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
@@ -1039,7 +1039,7 @@ class multi_gym(base_class):
 
 	def diagnostics_all(self, q_true, idx_iter = -1, idx_step = None, figsize = (16, 11), \
 						color_truth="red", color_model="blue", ft_size = 15, num_ticks = 5, \
-						show=False, save=None, title_str = None):
+						show=False, save=None, title_str = None, vmin=None, vmax=None):
 		"""
 		- idx_iter: Index of the iteration to plot.
 		- idx_step: Iddex of the step to plot. (Only applicable if save_traj = True.)
