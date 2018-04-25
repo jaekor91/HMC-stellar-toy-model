@@ -402,8 +402,8 @@ class base_class(object):
 			# then check whether there is contrast stored up. If not.
 			if self.vmin is None:
 				D_raveled = self.D.ravel()
-				self.vmin = np.percentile(D_raveled, 1.)
-				self.vmax = np.percentile(D_raveled, 80.)
+				self.vmin = np.percentile(D_raveled, 0.)
+				self.vmax = np.percentile(D_raveled, 95.)
 			vmin = self.vmin
 			vmax = self.vmax
 
@@ -1049,8 +1049,8 @@ class multi_gym(base_class):
 			# then check whether there is contrast stored up. If not.
 			if self.vmin is None:
 				D_raveled = self.D.ravel()
-				self.vmin = np.percentile(D_raveled, 1.)
-				self.vmax = np.percentile(D_raveled, 80.)
+				self.vmin = np.percentile(D_raveled, 0.)
+				self.vmax = np.percentile(D_raveled, 95.)
 			vmin = self.vmin
 			vmax = self.vmax
 
