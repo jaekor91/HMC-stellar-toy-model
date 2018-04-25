@@ -918,7 +918,7 @@ class multi_gym(base_class):
 					q_tmp = self.q_chain[l]
 
 			if verbose and ((l%10) == 0):
-				R_accept = np.sum(self.A_chain[:l]) / float(l + 1)
+				R_accept = np.sum(self.A_chain[l-10:l]) / float(10)
 				print "/---- Iteration: %d" % l
 				print "Acceptance rate so far: %.2f %%" % (R_accept * 100)
 
