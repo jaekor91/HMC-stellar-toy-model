@@ -1039,7 +1039,8 @@ class multi_gym(base_class):
 
 	def diagnostics_all(self, q_true, idx_iter = -1, idx_step = None, figsize = (16, 11), \
 						color_truth="red", color_model="blue", ft_size = 15, num_ticks = 5, \
-						show=False, save=None, title_str = None, vmin=None, vmax=None):
+						show=False, save=None, title_str = None, vmin=None, vmax=None,\
+						m=-30, b =20, s0=23, y_min=10):
 		"""
 		- idx_iter: Index of the iteration to plot.
 		- idx_step: Iddex of the step to plot. (Only applicable if save_traj = True.)
@@ -1065,12 +1066,12 @@ class multi_gym(base_class):
 		F0 = q_true[:, 0]
 		X0 = q_true[:, 1]
 		Y0 = q_true[:, 2]
-		S0 = linear_func(F0, m=-30, b = 20, s0=23, y_min=10)
+		S0 = linear_func(F0, m=m, b = b, s0=s0, y_min=y_min)
 		# Model
 		F = q_model[:, 0]
 		X = q_model[:, 1]
 		Y = q_model[:, 2]
-		S = linear_func(F, m=-30, b = 20, s0=23, y_min=10)
+		S = linear_func(F, m=m, b = b, s0=s0, y_min=y_min)
 
 		# --- Make the plot
 		fig, ax_list = plt.subplots(2, 3, figsize=figsize)
