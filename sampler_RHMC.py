@@ -759,7 +759,7 @@ class multi_gym(base_class):
 		return
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
-				dt = 1e-1, save_traj=False, counter_max = 1000):
+				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
@@ -917,6 +917,12 @@ class multi_gym(base_class):
 				else:
 					q_tmp = self.q_chain[l]
 
+			if verbose and ((l%10) == 0):
+				R_accept = np.sum(self.A_chain[:l]) / float(l + 1)
+				print "/---- Iteration: %d" % l
+				print "Acceptance rate so far: %.2f %%" % (R_accept * 100)
+
+
 		# ---- Compute the total acceptance rate.
 		self.R_accept = np.sum(self.A_chain) / float(self.Niter + 1)
 		print "Acceptance rate without warm-up: %.2f %%" % (self.R_accept * 100)
@@ -1044,6 +1050,7 @@ class multi_gym(base_class):
 		"""
 		- idx_iter: Index of the iteration to plot.
 		- idx_step: Iddex of the step to plot. (Only applicable if save_traj = True.)
+		- m, b, s0, y_min: Parameters for the scatter plot.
 		"""
 		# Contrast
 		if vmin is None:
