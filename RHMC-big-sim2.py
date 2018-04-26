@@ -7,18 +7,18 @@ Niter = 1000
 dt = 1e-2
 prior = True
 
-gym = multi_gym(dt=0., Nsteps=0, g_xx=0.01, g_ff=16.)
+gym = multi_gym(dt=0., Nsteps=0, g_xx=0.01, g_ff=10., g_ff2=2.)
 
 # --- Multiple stars
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
-Nobjs = 50
-Nobjs_model = 90
+Nobjs = 30
+Nobjs_model = 50
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
 # ---- Truth samples
-alpha = 2.
+alpha = 1.7
 if prior:
     gym.use_prior = True
     gym.alpha = alpha
