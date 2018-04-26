@@ -2,9 +2,10 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 10
+Nsteps = 15
 Niter = 1000
-dt = 1e-2
+dt = 2.5e-2
+prior = True
 
 gym = multi_gym(dt=0., Nsteps=0, g_xx=1., g_ff=1.)
 
@@ -18,6 +19,9 @@ q_model = np.zeros((Nobjs_model, 3))
 
 # ---- Truth samples
 alpha = 2.
+if prior:
+    gym.use_prior = True
+    gym.alpha = alpha
 mag_max = 20.5
 mag_min = 15.
 fmin = gym.mag2flux_converter(mag_max)
