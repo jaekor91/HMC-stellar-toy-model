@@ -7,13 +7,13 @@ Niter = 1000
 dt = 1e-2
 prior = True
 
-gym = multi_gym(dt=0., Nsteps=0, g_xx=0.1, g_ff=16.)
+gym = multi_gym(dt=0., Nsteps=0, g_xx=0.01, g_ff=16.)
 
 # --- Multiple stars
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 50
-Nobjs_model = 75
+Nobjs_model = 90
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
