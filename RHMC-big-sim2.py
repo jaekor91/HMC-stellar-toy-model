@@ -2,9 +2,9 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 30
+Nsteps = 10
 Niter = 1000
-dt = 8e-3
+dt = 1e-2
 
 gym = multi_gym(dt=0., Nsteps=0, g_xx=1., g_ff=1.)
 
@@ -58,11 +58,12 @@ gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
 
 save_dir = "./RHMC-big-sim2/"
 counter = 0
+j = 0
 for i in xrange(0, Niter+1):
-    for j in xrange(Nsteps+1):
-        title_str = "Niter%05d-Step%03d" % (i, j)
-        fname = save_dir + "slide-%07d" % counter
-        gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
-                   m=-15, b =10, s0=23, y_min=5., title_str=title_str)
-        counter+=1 
+    # for j in xrange(Nsteps+1):
+    title_str = "Niter%05d-Step%03d" % (i, j)
+    fname = save_dir + "slide-%07d" % counter
+    gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
+               m=-15, b =10, s0=23, y_min=5., title_str=title_str)
+    counter+=1 
         
