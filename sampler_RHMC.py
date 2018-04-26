@@ -25,7 +25,7 @@
 from utils import *
 
 class base_class(object):
-	def __init__(self, dt = 1., g_xx = 10, g_ff = 10):
+	def __init__(self, dt = 1., g_xx = 10, g_ff = 10, self.g_ff2 = 2):
 		"""
 		Sets default experimental or observational values, which can be changed later.
 		"""
@@ -242,9 +242,9 @@ class base_class(object):
 		If grad=True, then retrun gradient respect to flux.
 		"""
 		if not grad:
-			return self.g_ff / (f + (self.B_count / self.g0))
+			return 1. / (f / self.g_ff2 + (self.B_count / self.g0) / self.g_ff)
 		else:
-			return self.g_ff / (f + (self.B_count / self.g0)), -self.g_ff / (f + (self.B_count / self.g0))**2
+			return 1. / (f / self.g_ff2 + (self.B_count / self.g0) / self.g_ff), -1. / (f + (self.B_count / self.g0) / self.g_ff)**2
 		
 	def V(self, q, f_pos=False):
 		"""
@@ -424,7 +424,7 @@ class base_class(object):
 
 
 class single_gym(base_class):
-	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 10, g_ff = 10):
+	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1., g_ff2 = 1.):
 		"""
 		Single trajectory simulation.
 		- Nsteps: Number of steps to be taken.
@@ -738,7 +738,7 @@ class single_gym(base_class):
 
 
 class multi_gym(base_class):
-	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1.):
+	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1., g_ff2 = 1.):
 		"""
 		Single trajectory simulation.
 		- Nsteps: Number of steps to be taken.
