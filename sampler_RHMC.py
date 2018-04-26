@@ -25,7 +25,7 @@
 from utils import *
 
 class base_class(object):
-	def __init__(self, dt = 1., g_xx = 10, g_ff = 10, self.g_ff2 = 2):
+	def __init__(self, dt = 1., g_xx = 10, g_ff = 10, g_ff2 = 2):
 		"""
 		Sets default experimental or observational values, which can be changed later.
 		"""
@@ -44,6 +44,7 @@ class base_class(object):
 		self.dt = dt
 		self.g_xx = g_xx
 		self.g_ff = g_ff
+		self.g_ff2 = g_ff2
 
 		# Compute factors to be used repeatedly.
 		self.compute_factors()
