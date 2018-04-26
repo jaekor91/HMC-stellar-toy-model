@@ -2,18 +2,18 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 15
+Nsteps = 20
 Niter = 1000
-dt = 2.5e-2
+dt = 1e-2
 prior = True
 
-gym = multi_gym(dt=0., Nsteps=0, g_xx=1., g_ff=1.)
+gym = multi_gym(dt=0., Nsteps=0, g_xx=0.25, g_ff=1.)
 
 # --- Multiple stars
-np.random.seed(1)
+np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 50
-Nobjs_model = 100
+Nobjs_model = 75
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
