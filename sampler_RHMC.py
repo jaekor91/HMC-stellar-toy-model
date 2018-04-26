@@ -52,6 +52,10 @@ class base_class(object):
 		self.vmin = None
 		self.vmax = None
 
+		# Prior
+		self.use_prior = False
+		self.alpha = 2.
+
 		return
 
 	def gen_mock_data(self, q_true=None, return_data = False):
@@ -231,7 +235,7 @@ class base_class(object):
 		else:
 			return self.g_ff / (f + (self.B_count / self.g0)), -self.g_ff / (f + (self.B_count / self.g0))**2
 		
-	def V(self, q, f_pos=False, alpha=2., prior=False):
+	def V(self, q, f_pos=False):
 		"""
 		Negative Poisson log-likelihood given data and model.
 
@@ -261,10 +265,10 @@ class base_class(object):
 		for i in range(self.Nobjs): # Add every object.
 			f, x, y = q[3*i:3*i+3]
 			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix) 
-			V_prior += alpha * np.log(f)
+			V_prior += self.alpha * np.log(f)
 
 		V = np.sum(Lambda - self.D * np.log(Lambda))
-		if prior:
+		if self.use_prior:
 			V += V_prior
 
 		return V
