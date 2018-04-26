@@ -2,14 +2,14 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 10
+Nsteps = 30
 Niter = 1000
-dt = 5e-2
+dt = 8e-3
 
 gym = multi_gym(dt=0., Nsteps=0, g_xx=1., g_ff=1.)
 
 # --- Multiple stars
-np.random.seed(0)
+np.random.seed(1)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 33
 Nobjs_model = 50
@@ -17,24 +17,24 @@ q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
 # ---- Truth samples
-alpha = -2.
-mag_max = 20.5
+alpha = 2.
+mag_max = 22.
 mag_min = 15.
 fmin = gym.mag2flux_converter(mag_max)
 fmax = gym.mag2flux_converter(mag_min)
-mag = gym.flux2mag_converter(gen_pow_law_sample(fmin, Nobjs, alpha, fmax=fmax, exact=True))
+mag = gym.flux2mag_converter(gen_pow_law_sample(alpha, fmin, fmax, Nobjs))
 for i in xrange(Nobjs):
     x = np.random.random() * (gym.num_rows-2.) + 1.
     y = np.random.random() * (gym.num_cols-2.) + 1.
     q_true[i] = np.array([mag[i], x, y])
 
 # ---- Model samples
-alpha = -1.5
-mag_max = 24.
-mag_min = 19.
+alpha = 1.5
+mag_max = 22.9
+mag_min = 21.
 fmin = gym.mag2flux_converter(mag_max)
 fmax = gym.mag2flux_converter(mag_min)
-mag = gym.flux2mag_converter(gen_pow_law_sample(fmin, Nobjs_model, alpha, fmax=fmax, exact=True))
+mag = gym.flux2mag_converter(gen_pow_law_sample(alpha, fmin, fmax,  Nobjs_model))
 # x = np.linspace(1., gym.num_rows, endpoint=False, num=13)
 # y = np.linspace(1., gym.num_cols, endpoint=False, num=13)
 # x, y = np.meshgrid(x, y)
@@ -48,7 +48,7 @@ q_model[:, 2] = y
 
 # # Generate mock data
 gym.gen_mock_data(q_true)
-gym.display_image()
+# gym.display_image()
 
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
