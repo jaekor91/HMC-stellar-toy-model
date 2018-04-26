@@ -214,22 +214,11 @@ class base_class(object):
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
-
-		fmin = self.f_lim
-
-		if fmin > f:
-			f = fmin
-			f_low = True
-		else: 
-			f_low = False
-
 		if not grad:
-			return self.g_xx * f * self.g1
+			return (1./(gym.g1 * f) + gym.B/(gym.g2 * f**2))**-1
 		else:
-			if f_low:
-				return self.g_xx * f * self.g1, 0.
-			else:
-				return self.g_xx * f * self.g1, self.g_xx * self.g1
+			return (1./(gym.g1 * f) + gym.B/(gym.g2 * f**2))**-1, \
+			 (1./(gym.g1 * f**2) + 2 * gym.B/(gym.g2 * f**3)) * (1./(gym.g1 * f) + gym.B/(gym.g2 * f**2))**-2
 
 	def H_ff(self, f, grad=False):
 		"""
