@@ -219,7 +219,7 @@ class base_class(object):
 		If grad=True, then retrun gradient respect to flux.
 		"""
 		# If lower than flux limit, then set it toe be the flux at the low end.
-		f_low = self.mag2flux_converter(self.mB-1)
+		f_low = self.mag2flux_converter(self.mB+1)
 		LOW = False
 		if f < f_low:
 			f = f_low
@@ -292,7 +292,7 @@ class base_class(object):
 		term1 = np.sum(p**2 / H_diag)
 
 		# Determinant term. # Note that the flux could be negative so the absolute sign is necessary.
-		term2 = np.log(np.abs(np.prod(H_diag)))
+		term2 = np.sum(np.log(np.abs(H_diag)))
 
 		return (term1 + term2) / 2.
 
