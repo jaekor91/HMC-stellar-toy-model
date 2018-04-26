@@ -13,7 +13,7 @@ gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 30
-Nobjs_model = 40
+Nobjs_model = 35
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
