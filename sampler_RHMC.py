@@ -1111,6 +1111,8 @@ class multi_gym(base_class):
 		xticks00 = ticker.MaxNLocator(num_ticks)
 		ax_list[0, 0].yaxis.set_major_locator(yticks00)
 		ax_list[0, 0].xaxis.set_major_locator(xticks00)
+		ax_list[0, 0].set_xlim([-1.5, self.num_rows])
+		ax_list[0, 0].set_ylim([-1.5, self.num_cols])
 
 		# (0, 1): Mag - X
 		ax_list[0, 1].scatter(F0, X0, c=color_truth, s=S0, edgecolor="none", marker="x")
