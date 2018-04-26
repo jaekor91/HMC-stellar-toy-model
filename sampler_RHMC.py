@@ -144,7 +144,7 @@ class base_class(object):
 		#---- Default mag set up
 		self.mB = 23
 		B_count = mag2flux(self.mB) * flux_to_count
-		self.f_lim = mag2flux(self.mB+2) * flux_to_count
+		self.f_lim = mag2flux(self.mB) * flux_to_count
 
 		# Size of the image
 		num_rows = num_cols = 48 # Pixel index goes from 0 to num_rows-1
@@ -237,21 +237,10 @@ class base_class(object):
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
-		fmin = self.f_lim
-
-		if fmin > f:
-			f = fmin
-			f_low = True
-		else: 
-			f_low = False
-
 		if not grad:
-			return self.g_ff / f
+			return self.g_ff / (f + (self.B_count / self.g0))
 		else:
-			if not f_low:
-				return self.g_ff / f, -self.g_ff / f**2
-			else:
-				return self.g_ff / f, 0.				
+			return self.g_ff / (f + (self.B_count / self.g0)), -self.g_ff / (f + (self.B_count / self.g0))**2
 		
 	def V(self, q, f_pos=False):
 		"""
