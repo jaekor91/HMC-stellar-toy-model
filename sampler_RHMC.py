@@ -218,11 +218,22 @@ class base_class(object):
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
+		# If lower than flux limit, then set it toe be the flux at the low end.
+		f_low = self.mag2flux_converter(self.mB-1)
+		LOW = False
+		if f < f_low:
+			f = f_low
+			LOW = True
 		if not grad:
 			return self.g_xx * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1
 		else:
-			return self.g_xx * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1, \
-			 self.g_xx * (1./(self.g1 * f**2) + 2 * self.B_count/(self.g2 * f**3)) * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-2
+			if LOW:
+				grad = 0
+			else: 
+				grad = self.g_xx * (1./(self.g1 * f**2) + 2 * self.B_count/(self.g2 * f**3)) * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-2
+
+			return self.g_xx * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1, grad
+			 
 
 	def H_ff(self, f, grad=False):
 		"""
