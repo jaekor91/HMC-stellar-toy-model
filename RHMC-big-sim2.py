@@ -7,7 +7,7 @@ Niter = 1000
 dt = 1e-2
 prior = True
 
-gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=4., g_ff2=2.)
+gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
 
 # --- Multiple stars
 np.random.seed(77)
@@ -56,7 +56,7 @@ gym.gen_mock_data(q_true)
 
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
-             dt = dt, save_traj=True, verbose=True, q_true = q_true)
+             dt = dt, save_traj=False, verbose=True, q_true = q_true)
 
 
 
