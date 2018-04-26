@@ -240,16 +240,16 @@ class base_class(object):
 
 		Assume a fixed background.
 		"""
-		if f_pos: # If f is required to be positive
-			# Check whether all f is positive
-			all_f_pos = True
-			for i in xrange(self.Nobjs):
-				if q[3 * i] < 0:
-					all_f_pos = False
-					break
+		# if f_pos: # If f is required to be positive
+		# 	# Check whether all f is positive
+		# 	all_f_pos = True
+		# 	for i in xrange(self.Nobjs):
+		# 		if q[3 * i] < 0:
+		# 			all_f_pos = False
+		# 			break
 
-			if not all_f_pos: # If not all f is positive, then return infinity.
-				return np.infty
+		# 	if not all_f_pos: # If not all f is positive, then return infinity.
+		# 		return np.infty
 
 		for i in xrange(self.Nobjs):
 			x, y = q[3*i+1: 3*i+3]
@@ -1028,7 +1028,7 @@ class multi_gym(base_class):
 	def diagnostics_all(self, q_true, idx_iter = -1, idx_step = None, figsize = (16, 11), \
 						color_truth="red", color_model="blue", ft_size = 15, num_ticks = 5, \
 						show=False, save=None, title_str = None, vmin=None, vmax=None,\
-						m=-30, b =20, s0=23, y_min=10, m_min = 14.5, m_max = 25.):
+						m=-30, b =20, s0=23, y_min=10, m_min = 14.5, m_max = 23.):
 		"""
 		- idx_iter: Index of the iteration to plot.
 		- idx_step: Iddex of the step to plot. (Only applicable if save_traj = True.)
