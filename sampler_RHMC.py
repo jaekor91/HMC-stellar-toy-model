@@ -433,7 +433,7 @@ class single_gym(base_class):
 		- g_xx, g_ff: Factors that scale the momenta.
 		"""
 		# ---- Call the base class constructor
-		base_class.__init__(self, dt = dt, g_xx = g_xx, g_ff = g_ff)
+		base_class.__init__(self, dt = dt, g_xx = g_xx, g_ff = g_ff, g_ff2 = 1.)
 
 		# ---- Global variables
 		self.Nsteps = Nsteps
@@ -747,7 +747,7 @@ class multi_gym(base_class):
 		- g_xx, g_ff: Factors that scale the momenta.
 		"""
 		# ---- Call the base class constructor
-		base_class.__init__(self, dt = dt, g_xx = g_xx, g_ff = g_ff)
+		base_class.__init__(self, dt = dt, g_xx = g_xx, g_ff = g_ff, g_ff2 = g_ff2)
 
 		# ---- Global variables
 		self.Nsteps = Nsteps
