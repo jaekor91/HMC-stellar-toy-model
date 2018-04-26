@@ -11,14 +11,14 @@ gym = multi_gym(dt=0., Nsteps=0, g_xx=1., g_ff=1.)
 # --- Multiple stars
 np.random.seed(1)
 gym.num_rows = gym.num_cols = 32
-Nobjs = 33
-Nobjs_model = 50
+Nobjs = 50
+Nobjs_model = 100
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
 # ---- Truth samples
 alpha = 2.
-mag_max = 22.
+mag_max = 20.5
 mag_min = 15.
 fmin = gym.mag2flux_converter(mag_max)
 fmax = gym.mag2flux_converter(mag_min)
