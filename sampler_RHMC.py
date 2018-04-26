@@ -231,7 +231,7 @@ class base_class(object):
 		else:
 			return self.g_ff / (f + (self.B_count / self.g0)), -self.g_ff / (f + (self.B_count / self.g0))**2
 		
-	def V(self, q, f_pos=False):
+	def V(self, q, f_pos=False, alpha=2., prior=False):
 		"""
 		Negative Poisson log-likelihood given data and model.
 
@@ -251,16 +251,23 @@ class base_class(object):
 		# 	if not all_f_pos: # If not all f is positive, then return infinity.
 		# 		return np.infty
 
-		for i in xrange(self.Nobjs):
-			x, y = q[3*i+1: 3*i+3]
-			if  (x < 0) or (x > self.num_rows-1) or (y < 0) or (y > self.num_cols-1):
-				return np.infty
+		# for i in xrange(self.Nobjs):
+		# 	x, y = q[3*i+1: 3*i+3]
+		# 	if  (x < 0) or (x > self.num_rows-1) or (y < 0) or (y > self.num_cols-1):
+		# 		return np.infty
 
+		V_prior = 0.
 		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
 		for i in range(self.Nobjs): # Add every object.
 			f, x, y = q[3*i:3*i+3]
-			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
-		return np.sum(Lambda - self.D * np.log(Lambda))
+			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix) 
+			V_prior += alpha * np.log(f)
+
+		V = np.sum(Lambda - self.D * np.log(Lambda))
+		if prior:
+			V += V_prior
+
+		return V
 
 	def T(self, p, H_diag):
 		"""
