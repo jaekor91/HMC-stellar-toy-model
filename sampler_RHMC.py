@@ -219,10 +219,10 @@ class base_class(object):
 		If grad=True, then retrun gradient respect to flux.
 		"""
 		if not grad:
-			return (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1
+			return self.g_xx * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1
 		else:
-			return (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1, \
-			 (1./(self.g1 * f**2) + 2 * self.B_count/(self.g2 * f**3)) * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-2
+			return self.g_xx * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-1, \
+			 self.g_xx * (1./(self.g1 * f**2) + 2 * self.B_count/(self.g2 * f**3)) * (1./(self.g1 * f) + self.B_count/(self.g2 * f**2))**-2
 
 	def H_ff(self, f, grad=False):
 		"""
