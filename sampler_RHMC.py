@@ -311,6 +311,9 @@ class base_class(object):
 			grad[3*i] = -np.sum(rho * PSF) # flux grad
 			grad[3*i+1] = -np.sum(rho * (lv - x + 0.5) * PSF) * f / var
 			grad[3*i+2] = -np.sum(rho * (mv - y + 0.5) * PSF) * f / var
+
+			if self.use_prior:
+				grad[3*i] += self.alpha / f
 		return grad
 
 	def dVdq_RHMC(self, q, p):
