@@ -220,7 +220,7 @@ class base_class(object):
 		If grad=True, then retrun gradient respect to flux.
 		"""
 		# If lower than flux limit, then set it toe be the flux at the low end.
-		f_low = self.mag2flux_converter(self.mB+1)
+		f_low = self.mag2flux_converter(self.mB+2)
 		LOW = False
 		if f < f_low:
 			f = f_low
