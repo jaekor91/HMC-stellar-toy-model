@@ -763,7 +763,8 @@ class multi_gym(base_class):
 		return
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
-				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False, q_true=None):
+				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False, q_true=None,
+				schedule_g_ff2=None):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
@@ -771,6 +772,8 @@ class multi_gym(base_class):
 		- If p_initial is not None, then use that as the initial seed.
 		- save_traj: If True, save the intermediate 
 		- counter_max: Maximum number to try to converge at a solution.
+		- schedule_g_ff2: If not None, use the schedule from 0 to until the schedule runs out.
+		The g_ff2 value stays fixed thereafter. 
 
 		Convention:
 		- q_model_0 is used as the first point.
@@ -823,6 +826,10 @@ class multi_gym(base_class):
 
 		#---- Perform the iterations
 		for l in xrange(self.Niter+1):
+			if schedule_g_ff2 is not None
+				if l < schedule_g_ff2.size:
+					self.g_ff2 = schedule_g_ff2[l]
+
 			# The initial q_tmp has already been set at the end of the previous run.			
 			# Resample momentum
 			H_diag = self.H(q_tmp, grad=False)
