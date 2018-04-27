@@ -1213,6 +1213,7 @@ class multi_gym(base_class):
 		ax_list[0, 2].step(self.centers_noise, self.hist_noise * (self.num_rows * self.num_cols), color="blue", lw=1.5)
 		ax_list[0, 2].hist(residual.ravel(), bins=bins, color="black", lw=1.5, histtype="step")
 		ax_list[0, 2].set_xlim([-sig_fac2 * sig, sig_fac2 * sig])
+		ax_list[0, 2].set_ylim([0, np.max(self.hist_noise) * 1.1 * (self.num_rows * self.num_cols)])		
 		ax_list[0, 2].set_title("Res. hist", fontsize=ft_size)
 		yticks02 = ticker.MaxNLocator(num_ticks)
 		xticks02 = ticker.MaxNLocator(num_ticks)
@@ -1224,7 +1225,7 @@ class multi_gym(base_class):
 			plt.suptitle(title_str, fontsize=25)
 
 		if save is not None:
-			plt.savefig(save, dpi=100, bbox_inches = "tight")
+			plt.savefig(save, dpi=200, bbox_inches = "tight")
 		if show:
 			plt.show()			
 		plt.close()
