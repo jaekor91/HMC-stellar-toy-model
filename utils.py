@@ -645,3 +645,16 @@ def factors(num_rows, num_cols, x, y, PSF_FWHM_pix):
 
 def gaussian_1D(x, mu=0, sig=1):
     return np.exp(-np.square(x-mu)/ (2 * sig**2)) / (np.sqrt(2 * np.pi) * sig)
+
+def scheduler(val_init, val_final, Niter=10):
+    """
+    Return an array whose value starts from val_init and ends in val_final,
+    the values decreasing exponential over Niter number of steps.
+    """
+    # The exponential factor to multiply by at each step.
+    c = np.exp(np.log(val_final/float(val_init))/float(Niter-1))
+    N = np.arange(0, Niter, 1)
+    val = c**N * val_init
+    
+    # Total schedule
+    return val
