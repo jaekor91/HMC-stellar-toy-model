@@ -1066,7 +1066,7 @@ class multi_gym(base_class):
 			if self.vmin is None:
 				D_raveled = self.D.ravel()
 				self.vmin = np.percentile(D_raveled, 0.)
-				self.vmax = np.percentile(D_raveled, 95.)
+				self.vmax = np.percentile(D_raveled, 90.)
 			vmin = self.vmin
 			vmax = self.vmax
 
