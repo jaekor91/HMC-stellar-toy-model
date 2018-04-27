@@ -1192,7 +1192,7 @@ class multi_gym(base_class):
 		ax_list[1, 1].set_ylabel("X", fontsize=ft_size)
 
 		# (1, 2): Residual
-		sig_fac = 5
+		sig_fac = 7.
 		residual = self.D - model
 		sig = np.sqrt(self.B_count)
 		ax_list[1, 2].imshow(residual, cmap="gray", interpolation="none", vmin=-sig_fac * sig, vmax=sig_fac * sig)
@@ -1207,11 +1207,10 @@ class multi_gym(base_class):
 		ax_list[1, 2].set_ylabel("X", fontsize=ft_size)
 
 		# (0, 2): Residual histogram
-		sig_fac2 = 7 # Histogram should plot wider range
-		binsize = sig_fac * sig / 12.5
-		bins = np.arange(-sig_fac2 * sig, sig_fac2 * sig, binsize)
-		x = np.arange(-sig_fac2 * sig, sig_fac2 * sig, sig_fac2 * sig / 1000.)
-		ax_list[0, 2].plot(x, self.num_rows * self.num_cols * gaussian_1D(x, sig = sig) * binsize, lw=1.5)
+		sig_fac2 = 10. # Histogram should plot wider range
+		sig = np.sqrt(self.B_count)
+		bins = np.arange(-sig_fac2 * sig, sig_fac2 * sig, sig/5.)
+		ax_list[0, 2].step(self.centers_noise, self.hist_noise * (self.num_rows * self.num_cols), color="blue", lw=1.5)
 		ax_list[0, 2].hist(residual.ravel(), bins=bins, color="black", lw=1.5, histtype="step")
 		ax_list[0, 2].set_xlim([-sig_fac2 * sig, sig_fac2 * sig])
 		ax_list[0, 2].set_title("Res. hist", fontsize=ft_size)
