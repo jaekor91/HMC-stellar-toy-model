@@ -826,7 +826,7 @@ class multi_gym(base_class):
 
 		#---- Perform the iterations
 		for l in xrange(self.Niter+1):
-			if schedule_g_ff2 is not None
+			if schedule_g_ff2 is not None:
 				if l < schedule_g_ff2.size:
 					self.g_ff2 = schedule_g_ff2[l]
 
