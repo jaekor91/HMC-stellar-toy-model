@@ -100,6 +100,35 @@ class base_class(object):
 
 		return model
 
+	def gen_noise_profile(self, q_true, N_trial = 1000, sig_fac=10):
+		"""
+		Given the truth, obtain error profile.
+		"""
+		# Generate the truth image.
+		truth = np.ones((self.num_rows, self.num_cols), dtype=float) * self.B_count
+
+		# Add one star at a time.
+		for i in xrange(q_true.shape[0]):
+		    mag, x, y = q_true[i]
+		    truth += self.mag2flux_converter(mag) * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM = self.PSF_FWHM_pix)
+
+		res_list = []
+		for _ in xrange(N_trial):
+		    # Poission realization D of the underlying truth D0
+		    res_list.append(poisson_realization(truth) - truth)
+		res = np.vstack(res_list).ravel()
+
+		sig = np.sqrt(self.B_count)
+		bins = np.arange(-sig_fac * sig, sig_fac * sig, sig/5.)
+		hist, _ = np.histogram(res, bins = bins, normed=True)
+
+		bin_centers = (bins[1:] + bins[:-1])/2.
+
+		self.hist_noise = hist
+		self.centers_noise = bin_centers
+
+		return 		
+
 	def mag2flux_converter(self, mag):
 		"""
 		Given user input magnitude convert it to flux counts.
@@ -219,7 +248,7 @@ class base_class(object):
 
 		If grad=True, then retrun gradient respect to flux.
 		"""
-		# If lower than flux limit, then set it toe be the flux at the low end.
+		# If lower than flux limit, then set it to be the flux at the low end.
 		f_low = self.mag2flux_converter(self.mB+2)
 		LOW = False
 		if f < f_low:
