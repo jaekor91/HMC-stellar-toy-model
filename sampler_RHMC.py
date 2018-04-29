@@ -865,6 +865,26 @@ class single_gym(base_class):
 
 
 class multi_gym(base_class):
+	"""
+	Conventions for transdimensional samplers.
+	- The following table specifies index to move types.
+		0: Within model moves.
+		1: Brith or death.
+		2: Merge or split.
+	Within proposals of type 1 and 2, the options are chosen with probability of 1/2. each.
+	- The user specifies the probability of each type of moves.
+	- The sampler tallies which moves were proposed and whether they were accepted or not using the following
+	arrays.
+		- A_chain: Records whether the move was accepted or not.
+		- move_chain: Records the type of the proposal used.
+	- The user must specifies the maximnum number of sources as N_max. Memory for maximal number of objects are allocated.
+		- Any proposal to increase the number more than this is automatically rejected.
+		- Number of objects kept track via the global variable Nobjs. For each run, the number of objects is recorded in the 
+		chain variable, N_chain.
+		- Only the first Nobjs slots are used for storing. When an object is added (as in the caes of birth/split moves), 
+		the last object is added to the end of the slot. When an object is killed (as in merge/death), the last index object
+		is transferred to fill the spot of the killed object.
+	"""
 	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1., g_ff2 = 1.):
 		"""
 		Single trajectory simulation.
@@ -890,7 +910,7 @@ class multi_gym(base_class):
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
 				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False, q_true=None,
-				schedule_g_ff2=None):
+				schedule_g_ff2=None, N_max = 0, P_move = [1., 0., 0.]):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
@@ -921,6 +941,8 @@ class multi_gym(base_class):
 		self.Niter = Niter
 		self.Nsteps = Nsteps
 		self.save_traj = save_traj
+		self.P_move = P_move # Probability of different moves.
+		self.N_max = N_max # Maximum number of objects expected.
 
 		#---- Number of objects should have been already determined via optimal step search
 		self.Nobjs = q_model_0.shape[0]
@@ -931,7 +953,7 @@ class multi_gym(base_class):
 		# The intial point is saved in the zero index of the first axis.
 		# The last point is saved in the last index of the first axis.
 		if save_traj:
-			# Note that for the (Niter+1)-th sample does not go through steps.
+			# Note that for the (Niter+1)th sample does not go through steps.
 			# The last point in an iteration is the same the first point in the next iteration if the proposal is accepted.
 			self.q_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
 			self.p_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
@@ -946,6 +968,8 @@ class multi_gym(base_class):
 			self.V_chain = np.zeros(self.Niter+1)
 			self.T_chain = np.zeros(self.Niter+1)
 		self.A_chain = np.zeros(self.Niter+1, dtype=bool)
+		self.move_chain = np.zeros(self.Niter+1, dtype=int) # Record what sort of proposals were made.
+		self.N_chain = np.zeros(self.Niter+1, dtype=int) # Record the number of objects used.
 
 		#---- Set the very first initial point.
 		q_tmp = np.copy(q_model_0)
