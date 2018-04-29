@@ -877,6 +877,11 @@ class multi_gym(base_class):
 	arrays.
 		- A_chain: Records whether the move was accepted or not.
 		- move_chain: Records the type of the proposal used.
+			- 0: Within model moves
+			- 1: Birth
+			- 2: Death
+			- 3: Merge
+			- 4: Split
 	- The user must specifies the maximnum number of sources as N_max. Memory for maximal number of objects are allocated.
 		- Any proposal to increase the number more than this is automatically rejected.
 		- Number of objects kept track via the global variable Nobjs. For each run, the number of objects is recorded in the 
@@ -981,10 +986,12 @@ class multi_gym(base_class):
 
 		#---- Perform the iterations
 		for l in xrange(self.Niter+1):
+			# ---- Adjust parameters according to schedule
 			if schedule_g_ff2 is not None:
 				if l < schedule_g_ff2.size:
 					self.g_ff2 = schedule_g_ff2[l]
 
+			# ---- Compute the initial q, p and energies.
 			# The initial q_tmp has already been set at the end of the previous run.			
 			# Resample momentum
 			H_diag = self.H(q_tmp, grad=False)
@@ -1004,44 +1011,56 @@ class multi_gym(base_class):
 				self.T_chain[l, 0] = T_initial			
 			else:
 				# Only time energy is saved in the whole iteration.
-				self.q_chain[l] = q_tmp
-				self.p_chain[l] = p_tmp
+				self.q_chain[l, :self.Nobjs*3] = q_tmp
+				self.p_chain[l, :self.Nobjs*3] = p_tmp
 				self.V_chain[l] = V_initial
 				self.E_chain[l] = E_initial
-				self.T_chain[l] = T_initial
+				self.T_chain[l] = T_initial					
 
-			#---- Looping over steps
-			for i in xrange(1, self.Nsteps+1, 1):
-				q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
+			# ---- Roll dice and choose which proposal to make.
+			move_type = np.random.choice([0, 1, 2], p=self.P_move, size=1)[0]
 
-				# Intermediate variables save if asked
-				if save_traj:
-					# Diagonal H update
-					H_diag = self.H(q_tmp, grad=False)
-					self.q_chain[l, i] = q_tmp
-					self.p_chain[l, i] = p_tmp
-					self.V_chain[l, i] = self.V(q_tmp, f_pos=f_pos)
-					self.T_chain[l, i] = self.T(p_tmp, H_diag)
-					self.E_chain[l, i] = self.V_chain[l, i] + self.T_chain[l, i]
+			# ---- Regular RHMC integration
+			if move_type == 0:
+				self.move_chain[l] = 0 # Save which type of move was proposed.
+				self.N_chain[l] = self.Nobjs
 
-			# Compute the energy difference between the initial and the final energy
-			if save_traj: # If the energy has been already saved.
-				E_final = self.E_chain[l, -1]
-			else:
-				H_diag = self.H(q_tmp, grad=False)				
-				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
-			dE = E_final - E_initial
+				#---- Looping over steps
+				for i in xrange(1, self.Nsteps+1, 1):
+					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
 
-			# Accept or reject and set the next initial point accordingly.
-			lnu = np.log(np.random.random(1))
-			if (dE < 0) or (lnu < -dE): # If accepted.
-				self.A_chain[l] = 1
-			else: # Otherwise, proposal rejected.
-				# Reseting the position variable to the previous.
-				if save_traj:
-					q_tmp = self.q_chain[l, 0]
+					# Intermediate variables save if asked
+					if save_traj:
+						# Diagonal H update
+						H_diag = self.H(q_tmp, grad=False)
+						self.q_chain[l, i] = q_tmp
+						self.p_chain[l, i] = p_tmp
+						self.V_chain[l, i] = self.V(q_tmp, f_pos=f_pos)
+						self.T_chain[l, i] = self.T(p_tmp, H_diag)
+						self.E_chain[l, i] = self.V_chain[l, i] + self.T_chain[l, i]
+
+				# Compute the energy difference between the initial and the final energy
+				if save_traj: # If the energy has been already saved.
+					E_final = self.E_chain[l, -1]
 				else:
-					q_tmp = self.q_chain[l]
+					H_diag = self.H(q_tmp, grad=False)				
+					E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+				dE = E_final - E_initial
+
+				# Accept or reject and set the next initial point accordingly.
+				lnu = np.log(np.random.random(1))
+				if (dE < 0) or (lnu < -dE): # If accepted.
+					self.A_chain[l] = 1
+				else: # Otherwise, proposal rejected.
+					# Reseting the position variable to the previous.
+					if save_traj:
+						q_tmp = self.q_chain[l, 0]
+					else:
+						q_tmp = self.q_chain[l, :self.Nobjs * 3]						
+			else:
+				# Shouldn't be chosen for now.
+				assert False
+
 
 			if verbose and ((l%10) == 0):
 				R_accept = np.sum(self.A_chain[l-10:l]) / float(10)
