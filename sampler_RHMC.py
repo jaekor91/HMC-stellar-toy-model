@@ -316,7 +316,7 @@ class base_class(object):
 
 		if self.use_Vc: # If the user asks Qudratic potential to be used.
 			# Take out the flux and position vectors.
-			q_prime = np.copy(q.reshape((Nobjs, 3)))
+			q_prime = np.copy(q.reshape((self.Nobjs, 3)))
 			F = q_prime[:, 0]			
 			X = q_prime[:, 1]
 			Y = q_prime[:, 2]
@@ -369,7 +369,7 @@ class base_class(object):
 		var = (self.PSF_FWHM_pix/2.354)**2 
 		if self.use_Vc: # If the user asks Qudratic potential to be used.
 			# Take out the flux and position vectors.
-			q_prime = np.copy(q.reshape((Nobjs, 3)))
+			q_prime = np.copy(q.reshape((self.Nobjs, 3)))
 			F = q_prime[:, 0]			
 			X = q_prime[:, 1]
 			Y = q_prime[:, 2]
