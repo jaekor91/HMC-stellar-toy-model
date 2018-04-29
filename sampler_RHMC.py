@@ -916,7 +916,7 @@ class multi_gym(base_class):
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
 				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False, q_true=None,
-				schedule_g_ff2=None, N_max = 0, P_move = [1., 0., 0.]):
+				schedule_g_ff2=None, N_max = 50, P_move = [1., 0., 0.]):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
@@ -1016,6 +1016,7 @@ class multi_gym(base_class):
 				self.V_chain[l] = V_initial
 				self.E_chain[l] = E_initial
 				self.T_chain[l] = T_initial					
+
 
 			# ---- Roll dice and choose which proposal to make.
 			move_type = np.random.choice([0, 1, 2], p=self.P_move, size=1)[0]
