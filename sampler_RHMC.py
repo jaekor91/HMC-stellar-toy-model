@@ -884,6 +884,7 @@ class multi_gym(base_class):
 		- Only the first Nobjs slots are used for storing. When an object is added (as in the caes of birth/split moves), 
 		the last object is added to the end of the slot. When an object is killed (as in merge/death), the last index object
 		is transferred to fill the spot of the killed object.
+	- When performing RHMC integration/plotting diagnostics plots, provide as input only the "live points".
 	"""
 	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1., g_ff2 = 1.):
 		"""
@@ -936,6 +937,10 @@ class multi_gym(base_class):
 		- Nsteps is fixed from iteration to iteration.
 		- Total number of samples is Niter + 1, where 1 is for the initial point.
 		"""
+		if save_traj:
+			# Saving trajectory is currently not supported.
+			assert False
+
 		#---- Set global variables
 		self.dt = dt
 		self.Niter = Niter
@@ -955,15 +960,15 @@ class multi_gym(base_class):
 		if save_traj:
 			# Note that for the (Niter+1)th sample does not go through steps.
 			# The last point in an iteration is the same the first point in the next iteration if the proposal is accepted.
-			self.q_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
-			self.p_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.Nobjs * 3))
+			self.q_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.N_max * 3))
+			self.p_chain = np.zeros((self.Niter+1, self.Nsteps+1, self.N_max * 3))
 			self.E_chain = np.zeros((self.Niter+1, self.Nsteps+1))
 			self.V_chain = np.zeros((self.Niter+1, self.Nsteps+1))
 			self.T_chain = np.zeros((self.Niter+1, self.Nsteps+1))
 		else:
 			# Save the first point energy.			
-			self.q_chain = np.zeros((self.Niter+1, self.Nobjs * 3))
-			self.p_chain = np.zeros((self.Niter+1, self.Nobjs * 3))
+			self.q_chain = np.zeros((self.Niter+1, self.N_max * 3))
+			self.p_chain = np.zeros((self.Niter+1, self.N_max * 3))
 			self.E_chain = np.zeros(self.Niter+1)
 			self.V_chain = np.zeros(self.Niter+1)
 			self.T_chain = np.zeros(self.Niter+1)
