@@ -1216,7 +1216,7 @@ class multi_gym(base_class):
 		if self.save_traj:
 			q_model = self.reverse_format_q(self.q_chain[idx_iter, idx_step])
 		else:
-			q_model = self.reverse_format_q(self.q_chain[idx_iter])
+			q_model = self.reverse_format_q(self.q_chain[idx_iter, :self.Nobjs*3])
 
 		# --- Extract X, Y, Mag variables
 		# Truth 
