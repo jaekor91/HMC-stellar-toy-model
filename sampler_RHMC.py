@@ -56,6 +56,8 @@ class base_class(object):
 		# Prior
 		self.use_prior = False
 		self.alpha = 2.
+		self.use_Vc = False
+		self.beta = 1.
 
 		return
 
@@ -312,6 +314,25 @@ class base_class(object):
 		if self.use_prior:
 			V += V_prior
 
+		if self.use_Vc: # If the user asks Qudratic potential to be used.
+			# Take out the flux and position vectors.
+			q_prime = np.copy(q.reshape((Nobjs, 3)))
+			F = q_prime[:, 0]			
+			X = q_prime[:, 1]
+			Y = q_prime[:, 2]
+			
+			# Compute distance matrix: Row corresponds to first index and column second.
+			R = np.sqrt((X - X.T)**2 + (Y-Y.T)**2)
+
+			#---- Inverse of distance
+			# First set 0 distance to infinity.
+			ibool = (np.abs(R) < 1e-10)
+			R[ibool] = 1e32
+			inv_R = 1./R	
+			
+			# Add the quadratic potnetial
+			V += 0.5 * self.beta * np.sum( (F * F.T) * inv_R)		
+
 		return V
 
 	def T(self, p, H_diag):
@@ -346,6 +367,22 @@ class base_class(object):
 		mv = np.arange(0, self.num_cols)
 		mv, lv = np.meshgrid(lv, mv)
 		var = (self.PSF_FWHM_pix/2.354)**2 
+		if self.use_Vc: # If the user asks Qudratic potential to be used.
+			# Take out the flux and position vectors.
+			q_prime = np.copy(q.reshape((Nobjs, 3)))
+			F = q_prime[:, 0]			
+			X = q_prime[:, 1]
+			Y = q_prime[:, 2]
+			
+			# Compute distance matrix: Row corresponds to first index and column second.
+			R = np.sqrt((X - X.T)**2 + (Y-Y.T)**2)
+
+			#---- Inverse of distance
+			# First set 0 distance to infinity.
+			ibool = (np.abs(R) < 1e-10)
+			R[ibool] = 1e32
+			inv_R = 1./R
+
 		for i in range(self.Nobjs):
 			f, x, y = q[3*i:3*i+3]
 			PSF = gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix)
@@ -355,6 +392,12 @@ class base_class(object):
 
 			if self.use_prior:
 				grad[3*i] += self.alpha / f
+
+			if self.use_Vc: # 
+				grad[3*i] += self.beta * np.sum(inv_R[i, :] * F)
+				grad[3*i+1] += self.beta * np.sum(inv_R[i, :]**3  * f * F * (X - x))
+				grad[3*i+2] += self.beta * np.sum(inv_R[i, :]**3  * f * F * (Y - y))
+
 		return grad
 
 	def dVdq_RHMC(self, q, p):
