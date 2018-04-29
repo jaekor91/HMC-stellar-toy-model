@@ -398,7 +398,7 @@ class base_class(object):
 
 			if self.use_Vc: # 
 				inv_R_ij = inv_R[i, :]
-				grad[3*i] += self.beta * np.sum(inv_R_ij * F)
+				grad[3*i] += self.beta * np.sum(inv_R_ij * F) * (1 + self.f_expnt[i]) # The last term is for symmetry breaking
 				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (X - x))
 				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (Y - y))
 				# print "/---%d" % i
