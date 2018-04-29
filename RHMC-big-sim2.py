@@ -2,31 +2,25 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 30
-Niter = 500
-dt = 5e-3
-prior = True
+Nsteps = 100
+Niter = 1000
+dt = 2.5e-3
+prior = False
 use_Vc = True
 
-gff2_list = scheduler(1/16., 4., 250)
+gff2_list = scheduler(1/10., 4., 500)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
 
 # --- Multiple stars
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 30
-Nobjs_model = 40
+Nobjs_model = 30
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
 # ---- Truth samples
 alpha = 1.5
-if prior:
-    gym.use_prior = True
-    gym.alpha = alpha
-if use_Vc:
-    gym.use_Vc = True
-    gym.beta = 1e-8
 mag_max = 20.5
 mag_min = 15.
 fmin = gym.mag2flux_converter(mag_max)
@@ -36,6 +30,14 @@ for i in xrange(Nobjs):
     x = np.random.random() * (gym.num_rows-2.) + 1.
     y = np.random.random() * (gym.num_cols-2.) + 1.
     q_true[i] = np.array([mag[i], x, y])
+if prior:
+    gym.use_prior = True
+    gym.alpha = alpha
+if use_Vc:
+    gym.use_Vc = True
+    gym.beta = 5e-4
+    gym.f_expnt = np.zeros(Nobjs_model)
+    # gym.f_expnt = np.random.random(size=Nobjs_model) * 0.5 - (0.5/2.)
 
 # ---- Model samples
 alpha = 1.5
