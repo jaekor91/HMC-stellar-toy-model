@@ -547,7 +547,7 @@ class base_class(object):
 			if (y < 0) or (y > self.num_cols-1):
 				p_tmp[3 * k + 2] *= -1.					
 
-			return q_tmp, p_tmp
+		return q_tmp, p_tmp
 
 
 class single_gym(base_class):
