@@ -2,11 +2,11 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 100
+Nsteps = 30
 Niter = 1000
-dt = 2.5e-3
-prior = False
-use_Vc = True
+dt = 1e-2
+prior = True
+use_Vc = False
 
 gff2_list = scheduler(1/10., 4., 500)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
@@ -15,7 +15,7 @@ gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 30
-Nobjs_model = 30
+Nobjs_model = 40
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
