@@ -62,6 +62,9 @@ class base_class(object):
 		self.beta = 1.
 		self.f_expnt = None # Small perturbation to the expnent
 
+		# Proposal type defined in a dictionary
+		self.move_types = {0: "within", 1: "birth", 2: "death", 3: "split", 4: "merge"}
+
 		return
 
 	def gen_mock_data(self, q_true=None, return_data = False):
@@ -880,8 +883,8 @@ class multi_gym(base_class):
 			- 0: Within model moves
 			- 1: Birth
 			- 2: Death
-			- 3: Merge
-			- 4: Split
+			- 3: Split
+			- 4: Merge
 	- The user must specifies the maximnum number of sources as N_max. Memory for maximal number of objects are allocated.
 		- Any proposal to increase the number more than this is automatically rejected.
 		- Number of objects kept track via the global variable Nobjs. For each run, the number of objects is recorded in the 
@@ -1062,23 +1065,49 @@ class multi_gym(base_class):
 				# Shouldn't be chosen for now.
 				assert False
 
-
 			if verbose and ((l%10) == 0):
-				R_accept = np.sum(self.A_chain[l-10:l]) / float(10)
-				print "/---- Iteration: %d" % l
-				print "Acceptance rate so far: %.2f %%" % (R_accept * 100)
+				print "/---- Completed iteration %d" % l
+				self.R_accept_report(idx_iter = l, run_window = 10)
 
 				# Produce a diagnostic plot
 				self.diagnostics_all(q_true, show=False, idx_iter = l, idx_step=0, save="iter-%d.png" % l,\
                    m=-15, b =10, s0=23, y_min=5.)				
+				print "\n"
 
 
 		# ---- Compute the total acceptance rate.
-		self.R_accept = np.sum(self.A_chain) / float(self.Niter + 1)
-		print "Acceptance rate without warm-up: %.2f %%" % (self.R_accept * 100)
+		print "Finished. Final report."
+		self.R_accept_report(idx_iter = -1, running = False)		
 
 		return		
 
+	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
+		"""
+		Report the acceptance rate so far (idx_iter) broken down by type. If running True,
+		then report the acceptance rate within the run_window including the last.
+		"""
+		if cumulative:
+			print "/--Acceptance rate (cumulative)"
+			A_chain = self.A_chain[:idx_iter]
+			move_chain = self.move_chain[:idx_iter]
+			for i in range(5): # There are only 5 different types.
+				ibool = move_chain == i
+				Ntot = np.sum(ibool) # Total number of proposals of this type
+				if Ntot > 0:
+					Naccept = np.sum(A_chain[ibool]) # Number of proposals of this type accepted.
+					print "%10s: %.2f%% (%d / %d)" % (self.move_types[i], Naccept/float(Ntot) * 100, Naccept, Ntot)
+		if running:
+			print "/--Acceptance rate (running: %d)" % run_window
+			A_chain = self.A_chain[idx_iter-run_window:idx_iter]
+			move_chain = self.move_chain[idx_iter-run_window:idx_iter]
+			for i in range(5): # There are only 5 different types.
+				ibool = move_chain == i
+				Ntot = np.sum(ibool) # Total number of proposals of this type
+				if Ntot > 0:
+					Naccept = np.sum(A_chain[ibool]) # Number of proposals of this type accepted.
+					print "%10s: %.2f%% (%d / %d)" % (self.move_types[i], Naccept/float(Ntot) * 100, Naccept, Ntot)						
+
+		return
 
 	def diagnostics_first(self, q_true, show=True, figsize=(18, 12), \
 		plot_flux=False, num_ticks=5, ft_size = 20, pt_size1=20, save=None, Nskip=0, \
