@@ -331,7 +331,7 @@ class base_class(object):
 			inv_R = 1./R	
 			
 			# Add the quadratic potnetial
-			V += 0.5 * self.beta * np.sum( (F * F.T) * inv_R)		
+			V += 0.5 * self.beta * np.sum((F * F.reshape((self.Nobjs, 1))) * inv_R)		
 
 		return V
 
@@ -394,9 +394,14 @@ class base_class(object):
 				grad[3*i] += self.alpha / f
 
 			if self.use_Vc: # 
-				grad[3*i] += self.beta * np.sum(inv_R[i, :] * F)
-				grad[3*i+1] += self.beta * np.sum(inv_R[i, :]**3  * f * F * (X - x))
-				grad[3*i+2] += self.beta * np.sum(inv_R[i, :]**3  * f * F * (Y - y))
+				inv_R_ij = inv_R[i, :]
+				grad[3*i] += self.beta * np.sum(inv_R_ij * F)
+				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f * F * (X - x))
+				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f * F * (Y - y))
+				# print "/---%d" % i
+				# print inv_R
+				# print grad[3*i:3*i+3]
+				# assert False
 
 		return grad
 
