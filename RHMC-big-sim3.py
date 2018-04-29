@@ -3,11 +3,11 @@ from sampler_RHMC import *
 
 # Number of steps
 Nsteps = 20
-Niter = 5000
-dt = 2e-3
+Niter = 1000
+dt = 5e-3
 prior = True
 
-gff2_list = scheduler(1/10.**2, 2., 500)
+gff2_list = scheduler(1/5.**2, 4., 300)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=0.)
 
 # --- Multiple stars
