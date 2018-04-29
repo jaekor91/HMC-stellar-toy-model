@@ -6,15 +6,16 @@ Nsteps = 30
 Niter = 500
 dt = 5e-3
 prior = True
+use_Vc = True
 
-gff2_list = scheduler(1/25., 4., 250)
+gff2_list = scheduler(1/16., 4., 250)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
 
 # --- Multiple stars
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 30
-Nobjs_model = 50
+Nobjs_model = 40
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
@@ -23,6 +24,9 @@ alpha = 1.5
 if prior:
     gym.use_prior = True
     gym.alpha = alpha
+if use_Vc:
+    gym.use_Vc = True
+    gym.beta = 1e-8
 mag_max = 20.5
 mag_min = 15.
 fmin = gym.mag2flux_converter(mag_max)
@@ -64,14 +68,14 @@ gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
 
 
 
-save_dir = "./RHMC-big-sim2/"
-counter = 0
-j = 0
-for i in xrange(0, Niter+1):
-    # for j in xrange(Nsteps+1):
-    title_str = "Niter%05d-Step%03d" % (i, j)
-    fname = save_dir + "slide-%07d" % counter
-    gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
-               m=-15, b =10, s0=23, y_min=5., title_str=title_str)
-    counter+=1 
-        
+# save_dir = "./RHMC-big-sim2/"
+# counter = 0
+# j = 0
+# for i in xrange(0, Niter+1):
+#     # for j in xrange(Nsteps+1):
+#     title_str = "Niter%05d-Step%03d" % (i, j)
+#     fname = save_dir + "slide-%07d" % counter
+#     gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
+#                m=-15, b =10, s0=23, y_min=5., title_str=title_str)
+#     counter+=1 
+#         
