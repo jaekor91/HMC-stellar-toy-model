@@ -503,6 +503,52 @@ class base_class(object):
 			plt.savefig(save, dpi=100, bbox_inches = "tight")
 		plt.close()
 
+	def RHMC_single_step(self, q_tmp, p_tmp):
+
+		# First update phi-hat
+		p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+
+		# p-tau update
+		rho = np.copy(p_tmp)
+		dp = np.infty
+		counter = 0
+		while (dp > delta) and (counter < counter_max):
+			p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
+			dp = np.max(np.abs(p_tmp - p_prime))
+			p_tmp = np.copy(p_prime)
+			counter +=1
+
+		# q-tau update
+		sig = np.copy(q_tmp)
+		dq = np.infty
+		counter = 0				
+		while (dq > delta) and (counter < counter_max):
+			q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
+			dq = np.max(np.abs(q_tmp - q_prime))
+			q_tmp = np.copy(q_prime)					
+			counter +=1					
+
+		# p-tau update
+		p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
+
+		# Last update phi-hat
+		p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
+
+		# Boundary condition checks
+		for k in xrange(self.Nobjs):
+			f, x, y= q_tmp[3 * k : 3 * k + 3]					
+			# ---- Check for any source with flux < f_lim.
+			# If flux is negative, then reverse the direction of the momentum corresponding to the flux
+			if f < self.f_lim: 
+				p_tmp[3 * k] *= -1.
+			# ---- Reflect xy momenta if xy outside boundary						
+			if (x < 0) or (x > self.num_rows-1):
+				p_tmp[3 * k + 1] *= -1.
+			if (y < 0) or (y > self.num_cols-1):
+				p_tmp[3 * k + 2] *= -1.					
+
+			return q_tmp, p_tmp
+
 
 class single_gym(base_class):
 	def __init__(self, Nsteps = 100, dt = 0.1, g_xx = 1., g_ff = 1., g_ff2 = 1.):
@@ -937,47 +983,7 @@ class multi_gym(base_class):
 
 			#---- Looping over steps
 			for i in xrange(1, self.Nsteps+1, 1):
-				# First update phi-hat
-				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
-
-				# p-tau update
-				rho = np.copy(p_tmp)
-				dp = np.infty
-				counter = 0
-				while (dp > delta) and (counter < counter_max):
-					p_prime = rho - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp) 
-					dp = np.max(np.abs(p_tmp - p_prime))
-					p_tmp = np.copy(p_prime)
-					counter +=1
-
-				# q-tau update
-				sig = np.copy(q_tmp)
-				dq = np.infty
-				counter = 0				
-				while (dq > delta) and (counter < counter_max):
-					q_prime = sig + (self.dt/2.) * (self.dtaudp(sig, p_tmp) + self.dtaudp(q_tmp, p_tmp))
-					dq = np.max(np.abs(q_tmp - q_prime))
-					q_tmp = np.copy(q_prime)					
-					counter +=1					
-
-				# p-tau update
-				p_tmp = p_tmp - (self.dt/2.) * self.dtaudq(q_tmp, p_tmp)
-
-				# Last update phi-hat
-				p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
-
-				# Boundary condition checks
-				for k in xrange(self.Nobjs):
-					f, x, y= q_tmp[3 * k : 3 * k + 3]					
-					# ---- Check for any source with flux < f_lim.
-					# If flux is negative, then reverse the direction of the momentum corresponding to the flux
-					if f < self.f_lim: 
-						p_tmp[3 * k] *= -1.
-					# ---- Reflect xy momenta if xy outside boundary						
-					if (x < 0) or (x > self.num_rows-1):
-						p_tmp[3 * k + 1] *= -1.
-					if (y < 0) or (y > self.num_cols-1):
-						p_tmp[3 * k + 2] *= -1.
+				q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp)
 
 				# Intermediate variables save if asked
 				if save_traj:
