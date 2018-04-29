@@ -46,11 +46,6 @@ mag_min = 21.
 fmin = gym.mag2flux_converter(mag_max)
 fmax = gym.mag2flux_converter(mag_min)
 mag = gym.flux2mag_converter(gen_pow_law_sample(alpha, fmin, fmax,  Nobjs_model))
-# x = np.linspace(1., gym.num_rows, endpoint=False, num=13)
-# y = np.linspace(1., gym.num_cols, endpoint=False, num=13)
-# x, y = np.meshgrid(x, y)
-# x = x.ravel() + np.random.random(size=Nobjs_model)
-# y = y.ravel() + np.random.random(size=Nobjs_model)
 x = np.random.random(size=Nobjs_model) * (gym.num_rows-2.) + 1.
 y = np.random.random(size=Nobjs_model) * (gym.num_cols-2.) + 1.
 q_model[:, 0] = mag
@@ -70,7 +65,7 @@ gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
 
 
 
-# save_dir = "./RHMC-big-sim2/"
+# save_dir = "./RHMC-big-sim4/"
 # counter = 0
 # j = 0
 # for i in xrange(0, Niter+1):
