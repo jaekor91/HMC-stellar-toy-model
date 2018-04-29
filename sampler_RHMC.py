@@ -56,8 +56,11 @@ class base_class(object):
 		# Prior
 		self.use_prior = False
 		self.alpha = 2.
+
+		# Quadratic potential
 		self.use_Vc = False
 		self.beta = 1.
+		self.f_expnt = None # Small perturbation to the expnent
 
 		return
 
@@ -317,7 +320,7 @@ class base_class(object):
 		if self.use_Vc: # If the user asks Qudratic potential to be used.
 			# Take out the flux and position vectors.
 			q_prime = np.copy(q.reshape((self.Nobjs, 3)))
-			F = q_prime[:, 0]			
+			F = q_prime[:, 0]**(1 + self.f_expnt) # The additional factor is for symmetry breaking.
 			X = q_prime[:, 1]
 			Y = q_prime[:, 2]
 			
@@ -370,7 +373,7 @@ class base_class(object):
 		if self.use_Vc: # If the user asks Qudratic potential to be used.
 			# Take out the flux and position vectors.
 			q_prime = np.copy(q.reshape((self.Nobjs, 3)))
-			F = q_prime[:, 0]			
+			F = q_prime[:, 0]**(1 + self.f_expnt) # The additional factor is for symmetry breaking.
 			X = q_prime[:, 1]
 			Y = q_prime[:, 2]
 			
@@ -396,8 +399,8 @@ class base_class(object):
 			if self.use_Vc: # 
 				inv_R_ij = inv_R[i, :]
 				grad[3*i] += self.beta * np.sum(inv_R_ij * F)
-				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f * F * (X - x))
-				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f * F * (Y - y))
+				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (X - x))
+				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (Y - y))
 				# print "/---%d" % i
 				# print inv_R
 				# print grad[3*i:3*i+3]
