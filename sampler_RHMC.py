@@ -322,7 +322,7 @@ class base_class(object):
 			Y = q_prime[:, 2]
 			
 			# Compute distance matrix: Row corresponds to first index and column second.
-			R = np.sqrt((X - X.T)**2 + (Y-Y.T)**2)
+			R = np.sqrt((X - X.reshape((self.Nobjs, 1)))**2 + (Y-Y.reshape((self.Nobjs, 1)))**2)
 
 			#---- Inverse of distance
 			# First set 0 distance to infinity.
@@ -375,7 +375,7 @@ class base_class(object):
 			Y = q_prime[:, 2]
 			
 			# Compute distance matrix: Row corresponds to first index and column second.
-			R = np.sqrt((X - X.T)**2 + (Y-Y.T)**2)
+			R = np.sqrt((X - X.reshape((self.Nobjs, 1)))**2 + (Y-Y.reshape((self.Nobjs, 1)))**2)
 
 			#---- Inverse of distance
 			# First set 0 distance to infinity.
