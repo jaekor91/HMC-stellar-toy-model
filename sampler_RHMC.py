@@ -1019,6 +1019,7 @@ class multi_gym(base_class):
 				self.V_chain[l] = V_initial
 				self.E_chain[l] = E_initial
 				self.T_chain[l] = T_initial					
+			self.N_chain[l] = self.Nobjs # By convention the initial number of objects is saved.
 
 
 			# ---- Roll dice and choose which proposal to make.
@@ -1027,7 +1028,6 @@ class multi_gym(base_class):
 			# ---- Regular RHMC integration
 			if move_type == 0:
 				self.move_chain[l] = 0 # Save which type of move was proposed.
-				self.N_chain[l] = self.Nobjs
 
 				#---- Looping over steps
 				for i in xrange(1, self.Nsteps+1, 1):
@@ -1061,8 +1061,54 @@ class multi_gym(base_class):
 						q_tmp = self.q_chain[l, 0]
 					else:
 						q_tmp = self.q_chain[l, :self.Nobjs * 3]						
-			else:
-				# Shouldn't be chosen for now.
+			elif move_type = 1: # If it birth or death
+				# Roll the dice to determine whether it's birth or death
+				# True - Birth and False - Death.
+				birth_death = np.random.choice([True, False], p=[0.5, 0.5])
+				
+				# Save which type of move was proposed.
+				if birth_death: # True - Birth
+					self.move_chain[l] = 1 
+				else:
+					self.move_chain[l] = 2
+
+				#---- RHMC steps
+				for i in xrange(1, self.Nsteps+1, 1):
+					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
+				# Compute the energy difference between the initial and the final energy
+				H_diag = self.H(q_tmp, grad=False)
+				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+				dE1 = E_final - E_initial # First energy difference
+				# Reverse the momenta to respect the detailed balance.
+				p_tmp *= -1
+
+				#---- Birth or death move
+				# Given lnA0, Metropolis-Hasting acceptance probability is min(1, exp(lnA0)).
+				q_tmp, p_tmp, lnA0 = self.birth_death_move(q_tmp, p_tmp, birth_or_death = birth_death)
+
+				#---- RHMC steps
+				# Compute the initial energy after the birth/death move and before RHMC integration.
+				H_diag = self.H(q_tmp, grad=False)
+				E_initial = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+				# Perform RHMC integration.
+				for i in xrange(1, self.Nsteps+1, 1):
+					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
+				# Compute the final energy after move.
+				H_diag = self.H(q_tmp, grad=False)
+				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+				dE2 = E_final - E_initial # Second energy different.
+
+				# Accept or reject and set the next initial point accordingly.
+				lnu = np.log(np.random.random(1))
+				if (dE < 0) or (lnu < -dE): # If accepted.
+					self.A_chain[l] = 1
+					if birth_death:
+						self.Nobjs += 1
+					else:
+						self.Nobjs -= 1
+				else: # Otherwise, proposal rejected.
+					q_tmp = self.q_chain[l, :self.Nobjs * 3]	
+
 				assert False
 
 			if verbose and ((l%10) == 0):
