@@ -503,7 +503,7 @@ class base_class(object):
 			plt.savefig(save, dpi=100, bbox_inches = "tight")
 		plt.close()
 
-	def RHMC_single_step(self, q_tmp, p_tmp):
+	def RHMC_single_step(self, q_tmp, p_tmp, delta=1e-6, counter_max=1000):
 
 		# First update phi-hat
 		p_tmp = p_tmp - (self.dt/2.) * self.dphidq(q_tmp)
@@ -983,7 +983,7 @@ class multi_gym(base_class):
 
 			#---- Looping over steps
 			for i in xrange(1, self.Nsteps+1, 1):
-				q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp)
+				q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
 
 				# Intermediate variables save if asked
 				if save_traj:
