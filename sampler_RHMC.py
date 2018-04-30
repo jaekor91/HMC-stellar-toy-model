@@ -1061,7 +1061,7 @@ class multi_gym(base_class):
 						q_tmp = self.q_chain[l, 0]
 					else:
 						q_tmp = self.q_chain[l, :self.Nobjs * 3]						
-			elif move_type = 1: # If it birth or death
+			elif move_type == 1: # If it birth or death
 				# Roll the dice to determine whether it's birth or death
 				# True - Birth and False - Death.
 				birth_death = np.random.choice([True, False], p=[0.5, 0.5])
