@@ -1100,7 +1100,8 @@ class multi_gym(base_class):
 
 				# Accept or reject and set the next initial point accordingly.
 				lnu = np.log(np.random.random(1))
-				if (dE < 0) or (lnu < -dE): # If accepted.
+				ln_alpha0 = -dE1 + lnA0 -dE2  # Chained up acceptance probability
+				if (ln_alpha0 > 0) or (lnu < ln_alpha0): # If accepted.
 					self.A_chain[l] = 1
 					if birth_death:
 						self.Nobjs += 1
