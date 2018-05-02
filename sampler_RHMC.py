@@ -61,6 +61,7 @@ class base_class(object):
 		self.use_Vc = False
 		self.beta = 1.
 		self.f_expnt = None # Small perturbation to the expnent
+		self.Vc_r_pow = 1. # In current iteration, the potential takes the form Vc = 1/r**Vc_r_pow
 
 		# Proposal type defined in a dictionary
 		self.move_types = {0: "within", 1: "birth", 2: "death", 3: "split", 4: "merge"}
@@ -337,7 +338,7 @@ class base_class(object):
 			inv_R = 1./R	
 			
 			# Add the quadratic potnetial
-			V += 0.5 * self.beta * np.sum(inv_R) # np.sum((F * F.reshape((self.Nobjs, 1))) * inv_R)		
+			V += 0.5 * self.beta * np.sum(inv_R**self.Vc_r_pow) # np.sum((F * F.reshape((self.Nobjs, 1))) * inv_R)		
 
 		return V
 
@@ -405,8 +406,8 @@ class base_class(object):
 				# grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (X - x))
 				# grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (Y - y))
 
-				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * (X - x))
-				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * (Y - y))
+				grad[3*i+1] += self.beta * np.sum(inv_R_ij**(self.Vc_r_pow+2)  * (X - x)) * self.Vc_r_pow
+				grad[3*i+2] += self.beta * np.sum(inv_R_ij**(self.Vc_r_pow+2)  * (Y - y)) * self.Vc_r_pow
 
 				# print "/---%d" % i
 				# print inv_R
