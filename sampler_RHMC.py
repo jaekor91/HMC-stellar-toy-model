@@ -928,7 +928,7 @@ class multi_gym(base_class):
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
 				dt = 1e-1, save_traj=False, counter_max = 1000, verbose=False, q_true=None,
-				schedule_g_ff2=None, N_max = 50, P_move = [1., 0., 0.]):
+				schedule_g_ff2=None, N_max = 50, P_move = [1., 0., 0.], schedule_beta=None):
 		"""
 		- Perform Bayesian inference with RHMC with the initial model given as q_model_0. 
 		q_model_0 given in (Nobjs, 3) format.
@@ -938,6 +938,7 @@ class multi_gym(base_class):
 		- counter_max: Maximum number to try to converge at a solution.
 		- schedule_g_ff2: If not None, use the schedule from 0 to until the schedule runs out.
 		The g_ff2 value stays fixed thereafter. 
+		- schedule_beta: Coefficient for the qudratic potential. Use it to crank down the potential over time.
 
 		Convention:
 		- q_model_0 is used as the first point.
@@ -1002,6 +1003,9 @@ class multi_gym(base_class):
 			if schedule_g_ff2 is not None:
 				if l < schedule_g_ff2.size:
 					self.g_ff2 = schedule_g_ff2[l]
+			if schedule_beta is not None:
+				if l < schedule_beta.size:
+					self.beta = schedule_beta[l]
 
 			# ---- Compute the initial q, p and energies.
 			# The initial q_tmp has already been set at the end of the previous run.			
