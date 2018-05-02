@@ -6,6 +6,7 @@ Nsteps = 20
 Niter = 1000
 dt = 5e-3
 prior = True
+use_Vc = True
 
 gff2_list = scheduler(1/5.**2, 4., 300)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=0.)
@@ -14,7 +15,7 @@ gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=0.)
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 100
-Nobjs_model = 200
+Nobjs_model = 105
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
@@ -32,6 +33,10 @@ for i in xrange(Nobjs):
     x = np.random.random() * (gym.num_rows-2.) + 1.
     y = np.random.random() * (gym.num_cols-2.) + 1.
     q_true[i] = np.array([mag[i], x, y])
+if use_Vc:
+    gym.use_Vc = True
+    gym.beta = 1.
+    gym.f_expnt = np.zeros(Nobjs_model)
 
 # ---- Model samples
 alpha = 1.5
@@ -60,18 +65,18 @@ gym.gen_noise_profile(q_true, N_trial=1000)
 
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
-             dt = dt, save_traj=False, verbose=True, q_true = q_true, schedule_g_ff2=gff2_list)
+             dt = dt, save_traj=False, verbose=True, q_true = q_true, schedule_g_ff2=gff2_list, N_max = Nobjs_model)
 
 
 
-save_dir = "./RHMC-big-sim3/"
-counter = 0
-j = 0
-for i in xrange(0, Niter+1):
-    # for j in xrange(Nsteps+1):
-    title_str = "Niter%05d-Step%03d" % (i, j)
-    fname = save_dir + "slide-%07d" % counter
-    gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
-               m=-15, b =10, s0=23, y_min=5., title_str=title_str)
-    counter+=1 
-        
+# save_dir = "./RHMC-big-sim3/"
+# counter = 0
+# j = 0
+# for i in xrange(0, Niter+1):
+#     # for j in xrange(Nsteps+1):
+#     title_str = "Niter%05d-Step%03d" % (i, j)
+#     fname = save_dir + "slide-%07d" % counter
+#     gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
+#                m=-15, b =10, s0=23, y_min=5., title_str=title_str)
+#     counter+=1 
+#         
