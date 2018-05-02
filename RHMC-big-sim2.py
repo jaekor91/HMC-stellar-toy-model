@@ -6,7 +6,7 @@ Nsteps = 30
 Niter = 1000
 dt = 1e-2
 prior = True
-use_Vc = False
+use_Vc = True
 
 gff2_list = scheduler(1/10., 4., 500)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
@@ -35,7 +35,7 @@ if prior:
     gym.alpha = alpha
 if use_Vc:
     gym.use_Vc = True
-    gym.beta = 5e-4
+    gym.beta = 1e-4
     gym.f_expnt = np.zeros(Nobjs_model)
     # gym.f_expnt = np.random.random(size=Nobjs_model) * 0.5 - (0.5/2.)
 
