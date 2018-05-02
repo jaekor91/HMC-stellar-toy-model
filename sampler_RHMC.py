@@ -323,7 +323,7 @@ class base_class(object):
 		if self.use_Vc: # If the user asks Qudratic potential to be used.
 			# Take out the flux and position vectors.
 			q_prime = np.copy(q.reshape((self.Nobjs, 3)))
-			F = q_prime[:, 0]**(1 + self.f_expnt) # The additional factor is for symmetry breaking.
+			# F = q_prime[:, 0]**(1 + self.f_expnt) # The additional factor is for symmetry breaking.
 			X = q_prime[:, 1]
 			Y = q_prime[:, 2]
 			
@@ -337,7 +337,7 @@ class base_class(object):
 			inv_R = 1./R	
 			
 			# Add the quadratic potnetial
-			V += 0.5 * self.beta * np.sum((F * F.reshape((self.Nobjs, 1))) * inv_R)		
+			V += 0.5 * self.beta * np.sum(inv_R) # np.sum((F * F.reshape((self.Nobjs, 1))) * inv_R)		
 
 		return V
 
@@ -401,9 +401,13 @@ class base_class(object):
 
 			if self.use_Vc: # 
 				inv_R_ij = inv_R[i, :]
-				grad[3*i] += self.beta * np.sum(inv_R_ij * F) * (1 + self.f_expnt[i]) # The last term is for symmetry breaking
-				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (X - x))
-				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (Y - y))
+				# grad[3*i] += self.beta * np.sum(inv_R_ij * F) * (1 + self.f_expnt[i]) # The last term is for symmetry breaking
+				# grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (X - x))
+				# grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * f**(1+self.f_expnt[i]) * F * (Y - y))
+
+				grad[3*i+1] += self.beta * np.sum(inv_R_ij**3  * (X - x))
+				grad[3*i+2] += self.beta * np.sum(inv_R_ij**3  * (Y - y))
+
 				# print "/---%d" % i
 				# print inv_R
 				# print grad[3*i:3*i+3]
@@ -915,6 +919,10 @@ class multi_gym(base_class):
 		self.T_chain = None
 		self.A_chain = None # Accepted or not. The initial point deemed accepted by default.
 
+		# ---- Min/Max range for flux to draw from.
+		self.fmin = None
+		self.fmax = None
+
 		return
 
 	def run_RHMC(self, q_model_0, f_pos=True, delta=1e-6, Niter = 100, Nsteps=100,\
@@ -1099,6 +1107,8 @@ class multi_gym(base_class):
 				dE2 = E_final - E_initial # Second energy different.
 
 				# Accept or reject and set the next initial point accordingly.
+				# ------- This is an incorrect way to compute the acceptance probability!!!!!!!
+				# Instead should be using separate probabilities... min(1, ) x min(1, ) x min(1, )
 				lnu = np.log(np.random.random(1))
 				ln_alpha0 = -dE1 + lnA0 -dE2  # Chained up acceptance probability
 				if (ln_alpha0 > 0) or (lnu < ln_alpha0): # If accepted.
@@ -1127,6 +1137,53 @@ class multi_gym(base_class):
 		self.R_accept_report(idx_iter = -1, running = False)		
 
 		return		
+
+	def birth_death_move(self, q_tmp, p_tmp, birth_death = None):
+		"""
+		Implement birth/death move.
+		Birth if birth_death = True, death if birth_death = False.
+		"""
+		if (birth_death is None) or (self.alpha is None) or (self.fmin is None)\
+			or (self.fmax is None): # Prior must be provided.
+			assert False
+
+		# Calculate initial loglike
+		lnL_init = -self.V(q_tmp)
+
+		if birth_death: # If birth
+			q = np.zeros(q_tmp.size + 3)
+			p = np.zeros(q_tmp.size + 3)
+
+			# Copy in the old points.
+			q[:q_tmp.size] = q_tmp
+			p[:p_tmp.size] = p_tmp
+
+			# Draw new source parameters.
+			x = np.random.random() * self.num_rows
+			y = np.random.random() * self.num_cols
+			u_f = np.random.random()
+			
+			# Using INVCDF function to deterministically compute the new source flux.
+			f, dfdu = self.inv_cdf_flux(u_f, self.alpha, self.fmin, self.fmax) 
+			q_new_source = np.array([f, x, y])
+
+			# Compute inv_cdf and dinv_cdf/du contribution to the flux.
+			lng = np.log(f)
+			lnJ = np.log(dfdu) # J is for Jacobian
+		else: # If death
+			q = np.zeros(q_tmp.size - 3)
+			p = np.zeros(q_tmp.size - 3)
+			# 
+
+		# Compute final loglike
+		lnL_final = -self.V(q)
+
+		# Delta log-likelihood
+		dlnL = lnL_final - lnL_init
+
+		# Compute log acceptance probability
+
+		return q, p, lnA0		
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
 		"""
