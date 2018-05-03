@@ -1092,7 +1092,7 @@ class multi_gym(base_class):
 				# After 1st RHMC: qL, -pL (Dim = N)
 
 				#---- Birth or death move
-				q_tmp, p_tmp = self.birth_death_move(q_tmp, p_tmp, birth_or_death = birth_death)
+				q_tmp, p_tmp = self.birth_death_move(q_tmp, p_tmp, birth_death = birth_death)
 				# RJ move: q*L, -p*L (Dim = N +- 1)
 
 				#---- RHMC steps
