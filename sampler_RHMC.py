@@ -1092,7 +1092,7 @@ class multi_gym(base_class):
 				# After 1st RHMC: qL, -pL (Dim = N)
 
 				#---- Birth or death move
-				q_tmp, p_tmp = self.birth_death_move(q_tmp, p_tmp, birth_death = birth_death)
+				q_tmp, p_tmp, idx_kill = self.birth_death_move(q_tmp, p_tmp, birth_death = birth_death)
 				# RJ move: q*L, -p*L (Dim = N +- 1)
 
 				#---- RHMC steps
@@ -1105,6 +1105,16 @@ class multi_gym(base_class):
 				# Compute the final energy after move.
 				H_diag = self.H(q_tmp, grad=False)
 				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+				# Correct E_final according to the flux prior
+				if self.use_prior: # Prior is always used. 
+					# If birth, then the additional factor of alpha ln(f) should be subtracted,
+					# where f is evolved value.
+					if birth_death: 
+						f = q_tmp[3 * self.Nobjs - 1]
+						E_final -= self.alpha * np.log(f)
+					else: # If death, then the initial flux of killed source should be added
+						f = self.q_chain[l, 3 * idx_kill]	
+						E_final += self.alpha * np.log(f)						
 
 				# Difference
 				dE = E_final - E_initial
@@ -1154,6 +1164,9 @@ class multi_gym(base_class):
 			or (self.fmax is None): # Prior must be provided.
 			assert False
 
+		# Index of object to be killed.
+		i_kill = None
+
 		if birth_death: # If birth
 			q = np.zeros(q_tmp.size + 3)
 			p = np.zeros(q_tmp.size + 3)
@@ -1182,7 +1195,7 @@ class multi_gym(base_class):
 
 			# Update the global numbers
 			self.d = d_tmp + 3
-			self.Nobjs = Nobjs_tmp + 1		
+			self.Nobjs = Nobjs_tmp + 1
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
@@ -1200,7 +1213,7 @@ class multi_gym(base_class):
 			self.d -=3
 			self.Nobjs -=1
 
-		return q, p
+		return q, p, i_kill
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
 		"""
