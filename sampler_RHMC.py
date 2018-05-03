@@ -1076,7 +1076,7 @@ class multi_gym(base_class):
 						q_tmp = self.q_chain[l, 0]
 					else:
 						q_tmp = self.q_chain[l, :self.Nobjs * 3]						
-			elif move_type == 1: # If it birth or death
+			elif move_type == 1: # If birth or death
 				# Roll the dice to determine whether it's birth or death
 				# True - Birth and False - Death.
 				birth_death = np.random.choice([True, False], p=[0.5, 0.5])
@@ -1119,6 +1119,55 @@ class multi_gym(base_class):
 					self.A_chain[l] = 1
 				else: # Otherwise, proposal rejected.
 					if birth_death: # undoing the change in numbers
+						self.Nobjs -= 1
+						self.d -= 3
+					else:
+						self.Nobjs += 1
+						self.d += 3				
+					q_tmp = self.q_chain[l, :self.Nobjs * 3]			
+			elif move_type == 2: # If it merge or split
+				# Roll the dice to determine whether it's merge or split
+				# True - Split and False - Merge
+				merge_split = np.random.choice([True, False], p=[0.5, 0.5])
+				
+				# Save which type of move was proposed.
+				if merge_split: # True - Split
+					self.move_chain[l] = 3
+				else:
+					self.move_chain[l] = 4
+
+				# Initial: q0, p0 (Dim = N)
+				#---- RHMC steps
+				for i in xrange(1, self.Nsteps+1, 1):
+					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
+				p_tmp *= -1 
+				# After 1st RHMC: qL, -pL (Dim = N)
+
+				#---- Split or merge move
+				q_tmp, p_tmp, factor = self.split_merge_move(q_tmp, p_tmp, split_merge = split_merge)
+				# RJ move: q*L, -p*L (Dim = N +- 1)
+
+				#---- RHMC steps
+				# Perform RHMC integration.
+				for i in xrange(1, self.Nsteps+1, 1):
+					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
+				p_tmp *= -1 					
+				# After second RHMC: q*0, p*0 (Dim = N +- 1)
+
+				# Compute the final energy after move.
+				H_diag = self.H(q_tmp, grad=False)
+				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
+
+				# Difference
+				dE = E_final - E_initial
+
+				# Compute the log-probability of accept or reject.
+				ln_alpha0 = -dE	+ factor		
+				lnu = np.log(np.random.random(1))
+				if (ln_alpha0 > 0) or (lnu < ln_alpha0): # If accepted.
+					self.A_chain[l] = 1
+				else: # Otherwise, proposal rejected.
+					if split_merge: # undoing the change in numbers
 						self.Nobjs -= 1
 						self.d -= 3
 					else:
@@ -1215,7 +1264,7 @@ class multi_gym(base_class):
 			self.d = d_tmp-3
 			self.Nobjs = Nobjs_tmp-1
 			# print "Death"
-			
+
 		return q, p, factor
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
