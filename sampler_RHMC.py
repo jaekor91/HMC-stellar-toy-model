@@ -42,9 +42,9 @@ class base_class(object):
 
 		# Global time step / Factors that appear in H computation.
 		self.dt = dt
-		self.g_xx = g_xx
-		self.g_ff = g_ff
-		self.g_ff2 = g_ff2
+		self.g_xx = g_xx # Determines the step size in position. 
+		self.g_ff = g_ff # Determine the step size in the bright limit.
+		self.g_ff2 = g_ff2 # Determine the step size in the faint limit.
 
 		# Compute factors to be used repeatedly.
 		self.compute_factors()
