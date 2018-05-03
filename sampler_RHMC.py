@@ -1180,8 +1180,8 @@ class multi_gym(base_class):
 			p[-3:] = p_new
 
 			# Update the global numbers
-			self.d = d_tmp + 1
-			self.Nobjs = Nobjs_tmp + 3
+			self.d = d_tmp + 3
+			self.Nobjs = Nobjs_tmp + 1		
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
