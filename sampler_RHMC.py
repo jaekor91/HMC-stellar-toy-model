@@ -1111,11 +1111,6 @@ class multi_gym(base_class):
 
 				# Compute the log-probability of accept or reject.
 				ln_alpha0 = -dE	+ factor		
-				if birth_death: # Number prior
-					ln_alpha0 -= 3/2.
-				else:
-					ln_alpha0 += 3/2.
-
 				lnu = np.log(np.random.random(1))
 				if (ln_alpha0 > 0) or (lnu < ln_alpha0): # If accepted.
 					self.A_chain[l] = 1
