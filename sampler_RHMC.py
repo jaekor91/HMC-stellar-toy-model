@@ -1163,8 +1163,8 @@ class multi_gym(base_class):
 			p[:p_tmp.size] = p_tmp
 
 			# Draw new source parameters.
-			x = np.random.random() * self.num_rows
-			y = np.random.random() * self.num_cols 
+			x = np.random.random() * (self.num_rows - 2.) + 1.
+			y = np.random.random() * (self.num_cols - 2.) + 1.
 			f = gen_pow_law_sample(self.alpha, self.fmin, self.fmax, 1)[0]
 			q_new = np.array([f, x, y])
 			q[-3:] = q_new
