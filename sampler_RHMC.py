@@ -311,11 +311,13 @@ class base_class(object):
 		# 		return np.infty
 
 		V_prior = 0.
+		if self.V_prior_const is None:
+			self.V_prior_const = np.log(self.num_rows * self*num_cols) - np.log((1-self.alpha) / (self.fmax**(1-alpha) - self.fmin**(1-alpha)))
 		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
 		for i in range(self.Nobjs): # Add every object.
 			f, x, y = q[3*i:3*i+3]
 			Lambda += f * gauss_PSF(self.num_rows, self.num_cols, x, y, FWHM=self.PSF_FWHM_pix) 
-			V_prior += self.alpha * np.log(f)
+			V_prior += self.alpha * np.log(f) + self.V_prior_const
 
 		V = np.sum(Lambda - self.D * np.log(Lambda))
 		if self.use_prior:
@@ -1176,7 +1178,7 @@ class multi_gym(base_class):
 			p[-3:] = p_new
 
 			# Factor to be added to ln_alpha0
-			factor = self.alpha * np.log(f) - 3/2. + self.T(p_new, H_diag)
+			factor = self.alpha * np.log(f) - 3/2. + self.T(p_new, H_diag) + self.V_prior_const
 
 			# Update the global numbers
 			self.d = d_tmp + 3
@@ -1204,7 +1206,8 @@ class multi_gym(base_class):
 			self.Nobjs = 1
 			self.d = 3
 			H_diag = self.H(q_killed, grad=False)
-			factor = -self.alpha * np.log(q_killed[0]) + 3/2. - self.T(p_killed, H_diag)
+			# Factor to be added to ln_alpha0
+			factor = -self.alpha * np.log(f) + 3/2. - self.T(p_new, H_diag) - self.V_prior_const
 
 			# Update global numbers
 			self.d = d_tmp-3
