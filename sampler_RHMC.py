@@ -1151,9 +1151,6 @@ class multi_gym(base_class):
 			or (self.fmax is None): # Prior must be provided.
 			assert False
 
-		# Calculate initial loglike
-		lnL_init = -self.V(q_tmp)
-
 		if birth_death: # If birth
 			q = np.zeros(q_tmp.size + 3)
 			p = np.zeros(q_tmp.size + 3)
@@ -1164,30 +1161,29 @@ class multi_gym(base_class):
 
 			# Draw new source parameters.
 			x = np.random.random() * self.num_rows
-			y = np.random.random() * self.num_cols
-			u_f = np.random.random()
+			y = np.random.random() * self.num_cols 
+			f = gen_pow_law_sample(self.alpha, self.fmin, self.fmax, 1)[0]
+			q_new = np.array([x, y, f])
+			q[-3:] = q_new
 			
-			# Using INVCDF function to deterministically compute the new source flux.
-			f, dfdu = self.inv_cdf_flux(u_f, self.alpha, self.fmin, self.fmax) 
-			q_new_source = np.array([f, x, y])
-
-			# Compute inv_cdf and dinv_cdf/du contribution to the flux.
-			lng = np.log(f)
-			lnJ = np.log(dfdu) # J is for Jacobian
+			# Sample momentum based on the new source value.
+			H_diag = self.H(q_new, grad=False)
+			p_new = self.u_sample(self.d) * np.sqrt(H_diag)
+			p[-3:] = p_new
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
-			# 
+			
+			# Randomly select an object to kill.
+			i_kill = np.random.randint(0, self.Nobjs, size=1)[0]
 
-		# Compute final loglike
-		lnL_final = -self.V(q)
+			# Appropriately trim
+			q[:3 * i_kill] = q_tmp[:3 * i_kill]
+			q[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
+			p[:3 * i_kill] = q_tmp[:3 * i_kill]
+			p[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
 
-		# Delta log-likelihood
-		dlnL = lnL_final - lnL_init
-
-		# Compute log acceptance probability
-
-		return q, p, lnA0		
+		return q, p
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
 		"""
