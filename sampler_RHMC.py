@@ -1163,9 +1163,6 @@ class multi_gym(base_class):
 			f = gen_pow_law_sample(self.alpha, self.fmin, self.fmax, 1)[0]
 			q_new = np.array([f, x, y])
 			q[-3:] = q_new
-
-			# Factor to be added to ln_alpha0
-			factor = self.alpha * np.log(f) - 3/2.
 			
 			# Temporariliy store global variables
 			Nobjs_tmp = np.copy(self.Nobjs)
@@ -1178,6 +1175,9 @@ class multi_gym(base_class):
 			p_new = self.u_sample(self.d) * np.sqrt(H_diag)
 			p[-3:] = p_new
 
+			# Factor to be added to ln_alpha0
+			factor = self.alpha * np.log(f) - 3/2. + self.T(p_new, H_diag)
+
 			# Update the global numbers
 			self.d = d_tmp + 3
 			self.Nobjs = Nobjs_tmp + 1
@@ -1187,7 +1187,8 @@ class multi_gym(base_class):
 			
 			# Randomly select an object to kill.
 			i_kill = np.random.randint(0, self.Nobjs, size=1)[0]
-			f = q_tmp[3 * i_kill]
+			q_killed = q_tmp[3*i_kill:3*i_kill+3]
+			p_killed = p_tmp[3*i_kill:3*i_kill+3]
 
 			# Appropriately trim
 			q[:3 * i_kill] = q_tmp[:3 * i_kill]
@@ -1195,11 +1196,19 @@ class multi_gym(base_class):
 			p[:3 * i_kill] = q_tmp[:3 * i_kill]
 			p[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
 
-			# Update global numbers
-			self.d -=3
-			self.Nobjs -=1
+			# Temporariliy store global variables
+			Nobjs_tmp = np.copy(self.Nobjs)
+			d_tmp = np.copy(self.d)			
+
 			# Factor to be added to ln_alpha0
-			factor = -self.alpha * np.log(f) + 3/2.
+			self.Nobjs = 1
+			self.d = 3
+			H_diag = self.H(q_killed, grad=False)
+			factor = -self.alpha * np.log(q_killed[0]) + 3/2. - self.T(p_killed, H_diag)
+
+			# Update global numbers
+			self.d = d_tmp-3
+			self.Nobjs = Nobjs_tmp-1
 
 		return q, p, factor
 
