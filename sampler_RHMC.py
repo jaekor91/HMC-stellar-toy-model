@@ -1168,14 +1168,20 @@ class multi_gym(base_class):
 			q_new = np.array([f, x, y])
 			q[-3:] = q_new
 			
+			# Temporariliy store global variables
+			Nobjs_tmp = np.copy(self.Nobjs)
+			d_tmp = np.copy(self.d)
+
 			# Sample momentum based on the new source value.
+			self.Nobjs = 1
+			self.d = 3
 			H_diag = self.H(q_new, grad=False)
 			p_new = self.u_sample(self.d) * np.sqrt(H_diag)
 			p[-3:] = p_new
 
 			# Update the global numbers
-			self.d +=3
-			self.Nobjs +=1
+			self.d = d_tmp + 1
+			self.Nobjs = Nobjs_tmp + 3
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
