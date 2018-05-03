@@ -1119,11 +1119,13 @@ class multi_gym(base_class):
 				lnu = np.log(np.random.random(1))
 				if (ln_alpha0 > 0) or (lnu < ln_alpha0): # If accepted.
 					self.A_chain[l] = 1
-					if birth_death:
-						self.Nobjs += 1
-					else:
-						self.Nobjs -= 1
 				else: # Otherwise, proposal rejected.
+					if birth_death: # undoing the change in numbers
+						self.Nobjs -= 1
+						self.d -= 3
+					else:
+						self.Nobjs += 1
+						self.d += 3				
 					q_tmp = self.q_chain[l, :self.Nobjs * 3]	
 
 			if verbose and ((l%10) == 0):
@@ -1163,13 +1165,17 @@ class multi_gym(base_class):
 			x = np.random.random() * self.num_rows
 			y = np.random.random() * self.num_cols 
 			f = gen_pow_law_sample(self.alpha, self.fmin, self.fmax, 1)[0]
-			q_new = np.array([x, y, f])
+			q_new = np.array([f, x, y])
 			q[-3:] = q_new
 			
 			# Sample momentum based on the new source value.
 			H_diag = self.H(q_new, grad=False)
 			p_new = self.u_sample(self.d) * np.sqrt(H_diag)
 			p[-3:] = p_new
+
+			# Update the global numbers
+			self.d +=3
+			self.Nobjs +=1
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
@@ -1182,6 +1188,10 @@ class multi_gym(base_class):
 			q[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
 			p[:3 * i_kill] = q_tmp[:3 * i_kill]
 			p[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
+
+			# Update global numbers
+			self.d -=3
+			self.Nobjs -=1
 
 		return q, p
 
