@@ -1034,7 +1034,6 @@ class multi_gym(base_class):
 				self.T_chain[l] = T_initial					
 			self.N_chain[l] = self.Nobjs # By convention the initial number of objects is saved.
 
-
 			# ---- Roll dice and choose which proposal to make.
 			move_type = np.random.choice([0, 1, 2], p=self.P_move, size=1)[0]
 
@@ -1085,37 +1084,39 @@ class multi_gym(base_class):
 				else:
 					self.move_chain[l] = 2
 
+				# Initial: q0, p0 (Dim = N)
 				#---- RHMC steps
 				for i in xrange(1, self.Nsteps+1, 1):
 					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
-				# Compute the energy difference between the initial and the final energy
-				H_diag = self.H(q_tmp, grad=False)
-				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
-				dE1 = E_final - E_initial # First energy difference
-				# Reverse the momenta to respect the detailed balance.
-				p_tmp *= -1
+				p_tmp *= -1 
+				# After 1st RHMC: qL, -pL (Dim = N)
 
 				#---- Birth or death move
-				# Given lnA0, Metropolis-Hasting acceptance probability is min(1, exp(lnA0)).
-				q_tmp, p_tmp, lnA0 = self.birth_death_move(q_tmp, p_tmp, birth_or_death = birth_death)
+				q_tmp, p_tmp = self.birth_death_move(q_tmp, p_tmp, birth_or_death = birth_death)
+				# RJ move: q*L, -p*L (Dim = N +- 1)
 
 				#---- RHMC steps
-				# Compute the initial energy after the birth/death move and before RHMC integration.
-				H_diag = self.H(q_tmp, grad=False)
-				E_initial = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
 				# Perform RHMC integration.
 				for i in xrange(1, self.Nsteps+1, 1):
 					q_tmp, p_tmp = self.RHMC_single_step(q_tmp, p_tmp, delta = delta, counter_max = counter_max)
+				p_tmp *= -1 					
+				# After second RHMC: q*0, p*0 (Dim = N +- 1)
+
 				# Compute the final energy after move.
 				H_diag = self.H(q_tmp, grad=False)
 				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
-				dE2 = E_final - E_initial # Second energy different.
 
-				# Accept or reject and set the next initial point accordingly.
-				# ------- This is an incorrect way to compute the acceptance probability!!!!!!!
-				# Instead should be using separate probabilities... min(1, ) x min(1, ) x min(1, )
+				# Difference
+				dE = E_final - E_initial
+
+				# Compute the log-probability of accept or reject.
+				ln_alpha0 = -dE				
+				if birth_death: # If birth
+					ln_alpha0 -= 3/2.
+				else:
+					ln_alpha0 += 3/2.
+
 				lnu = np.log(np.random.random(1))
-				ln_alpha0 = -dE1 + lnA0 -dE2  # Chained up acceptance probability
 				if (ln_alpha0 > 0) or (lnu < ln_alpha0): # If accepted.
 					self.A_chain[l] = 1
 					if birth_death:
@@ -1124,8 +1125,6 @@ class multi_gym(base_class):
 						self.Nobjs -= 1
 				else: # Otherwise, proposal rejected.
 					q_tmp = self.q_chain[l, :self.Nobjs * 3]	
-
-				assert False
 
 			if verbose and ((l%10) == 0):
 				print "/---- Completed iteration %d" % l
