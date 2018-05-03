@@ -1184,7 +1184,7 @@ class multi_gym(base_class):
 			# Update the global numbers
 			self.d = d_tmp + 3
 			self.Nobjs = Nobjs_tmp + 1
-			print "Birth"
+			# print "Birth"
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
@@ -1214,7 +1214,7 @@ class multi_gym(base_class):
 			# Update global numbers
 			self.d = d_tmp-3
 			self.Nobjs = Nobjs_tmp-1
-			print "Death"
+			# print "Death"
 			
 		return q, p, factor
 
