@@ -62,6 +62,7 @@ class base_class(object):
 		self.beta = 1.
 		self.f_expnt = None # Small perturbation to the expnent
 		self.Vc_r_pow = 1. # In current iteration, the potential takes the form Vc = 1/r**Vc_r_pow
+		self.V_prior_const = None
 
 		# Proposal type defined in a dictionary
 		self.move_types = {0: "within", 1: "birth", 2: "death", 3: "split", 4: "merge"}
@@ -312,7 +313,7 @@ class base_class(object):
 
 		V_prior = 0.
 		if self.V_prior_const is None:
-			self.V_prior_const = np.log(self.num_rows * self*num_cols) - np.log((1-self.alpha) / (self.fmax**(1-alpha) - self.fmin**(1-alpha)))
+			self.V_prior_const = np.log(self.num_rows * self.num_cols) - np.log((1-self.alpha) / (self.fmax**(1-self.alpha) - self.fmin**(1-self.alpha)))
 		Lambda = np.ones_like(self.D) * self.B_count # Model set to background
 		for i in range(self.Nobjs): # Add every object.
 			f, x, y = q[3*i:3*i+3]
@@ -1183,6 +1184,7 @@ class multi_gym(base_class):
 			# Update the global numbers
 			self.d = d_tmp + 3
 			self.Nobjs = Nobjs_tmp + 1
+			print "Birth"
 		else: # If death
 			q = np.zeros(q_tmp.size - 3)
 			p = np.zeros(q_tmp.size - 3)
@@ -1207,11 +1209,12 @@ class multi_gym(base_class):
 			self.d = 3
 			H_diag = self.H(q_killed, grad=False)
 			# Factor to be added to ln_alpha0
-			factor = -self.alpha * np.log(f) + 3/2. - self.T(p_new, H_diag) - self.V_prior_const
+			factor = -self.alpha * np.log(q_killed[0]) + 3/2. - self.T(p_killed, H_diag) - self.V_prior_const
 
 			# Update global numbers
 			self.d = d_tmp-3
 			self.Nobjs = Nobjs_tmp-1
+			print "Death"
 
 		return q, p, factor
 
