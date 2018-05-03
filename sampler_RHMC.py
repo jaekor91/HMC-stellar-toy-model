@@ -1092,7 +1092,7 @@ class multi_gym(base_class):
 				# After 1st RHMC: qL, -pL (Dim = N)
 
 				#---- Birth or death move
-				q_tmp, p_tmp, idx_kill = self.birth_death_move(q_tmp, p_tmp, birth_death = birth_death)
+				q_tmp, p_tmp, factor = self.birth_death_move(q_tmp, p_tmp, birth_death = birth_death)
 				# RJ move: q*L, -p*L (Dim = N +- 1)
 
 				#---- RHMC steps
@@ -1105,23 +1105,13 @@ class multi_gym(base_class):
 				# Compute the final energy after move.
 				H_diag = self.H(q_tmp, grad=False)
 				E_final = self.V(q_tmp, f_pos=f_pos) + self.T(p_tmp, H_diag)
-				# Correct E_final according to the flux prior
-				if self.use_prior: # Prior is always used. 
-					# If birth, then the additional factor of alpha ln(f) should be subtracted,
-					# where f is evolved value.
-					if birth_death: 
-						f = q_tmp[3 * self.Nobjs - 1]
-						E_final -= self.alpha * np.log(f)
-					else: # If death, then the initial flux of killed source should be added
-						f = self.q_chain[l, 3 * idx_kill]	
-						E_final += self.alpha * np.log(f)						
 
 				# Difference
 				dE = E_final - E_initial
 
 				# Compute the log-probability of accept or reject.
-				ln_alpha0 = -dE				
-				if birth_death: # If birth
+				ln_alpha0 = -dE	+ factor		
+				if birth_death: # Number prior
 					ln_alpha0 -= 3/2.
 				else:
 					ln_alpha0 += 3/2.
@@ -1164,9 +1154,6 @@ class multi_gym(base_class):
 			or (self.fmax is None): # Prior must be provided.
 			assert False
 
-		# Index of object to be killed.
-		i_kill = None
-
 		if birth_death: # If birth
 			q = np.zeros(q_tmp.size + 3)
 			p = np.zeros(q_tmp.size + 3)
@@ -1181,6 +1168,9 @@ class multi_gym(base_class):
 			f = gen_pow_law_sample(self.alpha, self.fmin, self.fmax, 1)[0]
 			q_new = np.array([f, x, y])
 			q[-3:] = q_new
+
+			# Factor to be added to ln_alpha0
+			factor = self.alpha * np.log(f) - 3/2.
 			
 			# Temporariliy store global variables
 			Nobjs_tmp = np.copy(self.Nobjs)
@@ -1202,6 +1192,7 @@ class multi_gym(base_class):
 			
 			# Randomly select an object to kill.
 			i_kill = np.random.randint(0, self.Nobjs, size=1)[0]
+			f = q_tmp[3 * i_kill]
 
 			# Appropriately trim
 			q[:3 * i_kill] = q_tmp[:3 * i_kill]
@@ -1212,8 +1203,10 @@ class multi_gym(base_class):
 			# Update global numbers
 			self.d -=3
 			self.Nobjs -=1
+			# Factor to be added to ln_alpha0
+			factor = -self.alpha * np.log(f) + 3/2.
 
-		return q, p, i_kill
+		return q, p, factor
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
 		"""
