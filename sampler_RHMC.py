@@ -1130,12 +1130,13 @@ class multi_gym(base_class):
 
 			if verbose and ((l%10) == 0):
 				print "/---- Completed iteration %d" % l
+				print "N_objs: %d\n" % self.Nobjs
 				self.R_accept_report(idx_iter = l, run_window = 10)
 
 				# Produce a diagnostic plot
 				self.diagnostics_all(q_true, show=False, idx_iter = l, idx_step=0, save="iter-%d.png" % l,\
                    m=-15, b =10, s0=23, y_min=5.)				
-				print "\n"
+				print "\n\n"
 
 
 		# ---- Compute the total acceptance rate.
@@ -1365,7 +1366,7 @@ class multi_gym(base_class):
 		if self.save_traj:
 			q_model = self.reverse_format_q(self.q_chain[idx_iter, idx_step])
 		else:
-			q_model = self.reverse_format_q(self.q_chain[idx_iter, :self.N_chain[idx_iter] * 3])
+			q_model = self.reverse_format_q(self.q_chain[idx_iter, :self.Nobjs * 3])
 
 		# --- Extract X, Y, Mag variables
 		# Truth 
