@@ -2,15 +2,17 @@ from utils import *
 from sampler_RHMC import *
 
 # Number of steps
-Nsteps = 30
+Nsteps = 20
 Niter = 1000
-dt = 1e-2
+dt = 5e-2
 prior = True
 use_Vc = False
+RJRHMC = True # Use Transdimensional moves
+P_move = [0.5, 0.5, 0.]
 
-gff2_list = scheduler(1/10., 4., 500)
+# gff2_list = scheduler(1/10., 4., 500)
 beta_list = None # scheduler(1e-2, 1e-12, 500)
-gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
+gym = multi_gym(dt=0., Nsteps=0, g_xx=0.05, g_ff=1., g_ff2=1.)
 
 # --- Multiple stars
 np.random.seed(77)
@@ -31,6 +33,9 @@ for i in xrange(Nobjs):
     x = np.random.random() * (gym.num_rows-2.) + 1.
     y = np.random.random() * (gym.num_cols-2.) + 1.
     q_true[i] = np.array([mag[i], x, y])
+if RJRHMC:
+    gym.fmin = fmin
+    gym.fmax = fmax
 if prior:
     gym.use_prior = True
     gym.alpha = alpha
@@ -62,9 +67,9 @@ gym.gen_noise_profile(q_true, N_trial=1000)
 
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
-             dt = dt, save_traj=False, verbose=True, q_true = q_true, schedule_g_ff2=gff2_list, \
-              schedule_beta=beta_list)
-
+             dt = dt, save_traj=False, verbose=True, q_true = q_true,
+              schedule_beta=beta_list, P_move = P_move, N_max = 50)
+# schedule_g_ff2=gff2_list, \
 
 
 # save_dir = "./RHMC-big-sim4/"
