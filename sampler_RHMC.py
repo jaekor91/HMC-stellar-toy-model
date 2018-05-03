@@ -1197,8 +1197,8 @@ class multi_gym(base_class):
 			# Appropriately trim
 			q[:3 * i_kill] = q_tmp[:3 * i_kill]
 			q[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
-			p[:3 * i_kill] = q_tmp[:3 * i_kill]
-			p[3 * i_kill:] = q_tmp[3 * i_kill + 3:]
+			p[:3 * i_kill] = p_tmp[:3 * i_kill]
+			p[3 * i_kill:] = p_tmp[3 * i_kill + 3:]
 
 			# Temporariliy store global variables
 			Nobjs_tmp = np.copy(self.Nobjs)
@@ -1215,7 +1215,7 @@ class multi_gym(base_class):
 			self.d = d_tmp-3
 			self.Nobjs = Nobjs_tmp-1
 			print "Death"
-
+			
 		return q, p, factor
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
