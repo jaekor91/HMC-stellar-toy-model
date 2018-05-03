@@ -9,13 +9,14 @@ prior = True
 use_Vc = True
 
 gff2_list = scheduler(1/10., 4., 500)
+beta_list = scheduler(1e-2, 1e-12, 500)
 gym = multi_gym(dt=0., Nsteps=0, g_xx=0.005, g_ff=25., g_ff2=2.)
 
 # --- Multiple stars
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
 Nobjs = 30
-Nobjs_model = 40
+Nobjs_model = 30
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
@@ -37,7 +38,7 @@ if use_Vc:
     gym.use_Vc = True
     gym.beta = 1e-4
     gym.f_expnt = np.zeros(Nobjs_model)
-    # gym.f_expnt = np.random.random(size=Nobjs_model) * 0.5 - (0.5/2.)
+    gym.Vc_r_pow = 4.
 
 # ---- Model samples
 alpha = 1.5
@@ -66,7 +67,7 @@ gym.gen_noise_profile(q_true, N_trial=1000)
 
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
-             dt = dt, save_traj=False, verbose=True, q_true = q_true, schedule_g_ff2=gff2_list)
+             dt = dt, save_traj=False, verbose=True, q_true = q_true, schedule_g_ff2=gff2_list, schedule_beta=beta_list)
 
 
 
