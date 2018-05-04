@@ -1366,6 +1366,7 @@ class multi_gym(base_class):
 			Q_dxdy = np.exp(-R_sq / (2. * self.K_split**2)) / (2. * np.pi * self.K_split**2)
 			# Total probility
 			P_choose = BETA_F * Q_dxdy
+			P_choose /= np.sum(P_choose)
 
 			#----Choose the objects to merge
 			pair_num = np.random.choice(xrange(self.Nobjs**2), p=P_choose.ravel())
