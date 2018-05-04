@@ -1133,10 +1133,10 @@ class multi_gym(base_class):
 			elif move_type == 2: # If it merge or split
 				# Roll the dice to determine whether it's merge or split
 				# True - Split and False - Merge
-				merge_split = np.random.choice([True, False], p=[0.5, 0.5])
+				split_merge = np.random.choice([True, False], p=[0.5, 0.5])
 				
 				# Save which type of move was proposed.
-				if merge_split: # True - Split
+				if split_merge: # True - Split
 					self.move_chain[l] = 3
 				else:
 					self.move_chain[l] = 4
