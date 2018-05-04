@@ -1282,6 +1282,7 @@ class multi_gym(base_class):
 			assert False
 
 		if split_merge: # If split
+			print "Split"		
 			q = np.zeros(q_tmp.size + 3)
 			p = np.zeros(q_tmp.size + 3)
 
@@ -1345,8 +1346,8 @@ class multi_gym(base_class):
 			# Update the global numbers
 			self.d = d_tmp + 3
 			self.Nobjs = Nobjs_tmp + 1
-			# print "Split"
 		else: # If Merge
+			print "Merge"		
 			#---- Compute the probability of merge q(F)q(dx, dy)
 			# Create vectors of flux and xy-pos
 			f_vec = np.zeros(self.Nobjs)
@@ -1374,10 +1375,10 @@ class multi_gym(base_class):
 			idx_dprime = pair_num % self.Nobjs
 
 			#----Import the objects to merge and compute the result.
-			q_prime = q_tmp[3*idx_prime:3*idx_prime+3]
-			p_prime = p_tmp[3*idx_prime:3*idx_prime+3]
-			q_dprime = q_tmp[3*idx_dprime:3*idx_dprime+3]
-			p_dprime = p_tmp[3*idx_dprime:3*idx_dprime+3]
+			q_prime = np.copy(q_tmp[3*idx_prime:3*idx_prime+3])
+			p_prime = np.copy(p_tmp[3*idx_prime:3*idx_prime+3])
+			q_dprime = np.copy(q_tmp[3*idx_dprime:3*idx_dprime+3])
+			p_dprime = np.copy(p_tmp[3*idx_dprime:3*idx_dprime+3])
 			# Unpack
 			f_prime, x_prime, y_prime = q_prime
 			f_dprime, x_dprime, y_dprime = q_dprime
@@ -1439,8 +1440,8 @@ class multi_gym(base_class):
 					- T_prime - T_dprime + T_star
 
 			# Update the global numbers
-			self.d = d_tmp + 3
-			self.Nobjs = Nobjs_tmp + 1
+			self.d = d_tmp - 3
+			self.Nobjs = Nobjs_tmp - 1
 		return q, p, factor
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
