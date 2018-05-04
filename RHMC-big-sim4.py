@@ -4,26 +4,29 @@ from sampler_RHMC import *
 # Number of steps
 Nsteps = 20
 Niter = 1000
-dt = 5e-2
 prior = True
 use_Vc = False
 RJRHMC = True # Use Transdimensional moves
 P_move = [0.5, 0.5, 0.]
+dt = 5e-2
 
 # gff2_list = scheduler(1/10., 4., 500)
 beta_list = None # scheduler(1e-2, 1e-12, 500)
-gym = multi_gym(dt=0., Nsteps=0, g_xx=0.05, g_ff=1., g_ff2=1.)
+gym = multi_gym(dt=0., Nsteps=0, g_xx=0.05, g_ff=4., g_ff2=4.)
 
 # --- Multiple stars
 np.random.seed(77)
 gym.num_rows = gym.num_cols = 32
-Nobjs = 30
-Nobjs_model = 15
+Nobjs = 100
+Nobjs_model = 100
 q_true = np.zeros((Nobjs, 3))
 q_model = np.zeros((Nobjs_model, 3))
 
+# --- Determine step size based on the number of objects.
+# dt = 1e-2 # 5e-2 * np.sqrt(30) / np.sqrt(Nobjs_model)
+
 # ---- Truth samples
-alpha = 1.5
+alpha = 2.
 mag_max = 20.5
 mag_min = 15.
 fmin = gym.mag2flux_converter(mag_max)
@@ -46,9 +49,9 @@ if prior:
 #     gym.Vc_r_pow = 4.
 
 # ---- Model samples
-alpha = 1.5
-mag_max = 22.9
-mag_min = 21.
+# alpha = 1.5
+# mag_max = 23.
+# mag_min = 22.9
 fmin = gym.mag2flux_converter(mag_max)
 fmax = gym.mag2flux_converter(mag_min)
 mag = gym.flux2mag_converter(gen_pow_law_sample(alpha, fmin, fmax,  Nobjs_model))
@@ -68,18 +71,18 @@ gym.gen_noise_profile(q_true, N_trial=1000)
 # print "--------------- RHMC"
 gym.run_RHMC(q_model, f_pos=True, delta=1e-6, Niter = Niter, Nsteps=Nsteps, \
              dt = dt, save_traj=False, verbose=True, q_true = q_true,
-              schedule_beta=beta_list, P_move = P_move, N_max = 50)
+              schedule_beta=beta_list, P_move = P_move, N_max = 120)
 # schedule_g_ff2=gff2_list, \
 
 
-# save_dir = "./RHMC-big-sim4/"
-# counter = 0
-# j = 0
-# for i in xrange(0, Niter+1):
-#     # for j in xrange(Nsteps+1):
-#     title_str = "Niter%05d-Step%03d" % (i, j)
-#     fname = save_dir + "slide-%07d" % counter
-#     gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
-#                m=-15, b =10, s0=23, y_min=5., title_str=title_str)
-#     counter+=1 
-#         
+save_dir = "./RHMC-big-sim4/"
+counter = 0
+j = 0
+for i in xrange(0, Niter+1):
+    # for j in xrange(Nsteps+1):
+    title_str = "Niter%05d-Step%03d" % (i, j)
+    fname = save_dir + "slide-%07d" % counter
+    gym.diagnostics_all(q_true, show=False, idx_iter = i, idx_step=j, save=fname,\
+               m=-15, b =10, s0=23, y_min=5., title_str=title_str)
+    counter+=1 
+        
