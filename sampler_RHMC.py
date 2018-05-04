@@ -64,6 +64,11 @@ class base_class(object):
 		self.Vc_r_pow = 1. # In current iteration, the potential takes the form Vc = 1/r**Vc_r_pow
 		self.V_prior_const = None
 
+		# Split merge parameters
+		self.K_split = 1.
+		self.beta_a = 2.
+		self.beta_b = 2.
+
 		# Proposal type defined in a dictionary
 		self.move_types = {0: "within", 1: "birth", 2: "death", 3: "split", 4: "merge"}
 
@@ -1265,6 +1270,176 @@ class multi_gym(base_class):
 			self.Nobjs = Nobjs_tmp-1
 			# print "Death"
 
+		return q, p, factor
+
+
+	def split_merge_move(self, q_tmp, p_tmp, split_merge = None):
+		"""
+		Implement birth/death move.
+		Birth if birth_death = True, death if birth_death = False.
+		"""
+		if (split_merge is None):
+			assert False
+
+		if split_merge: # If split
+			q = np.zeros(q_tmp.size + 3)
+			p = np.zeros(q_tmp.size + 3)
+
+			# Copy in the old points.
+			q[:q_tmp.size] = q_tmp
+			p[:p_tmp.size] = p_tmp
+
+			# Select the source to split
+			i_star = np.random.randint(0, self.Nobjs, size=1)[0]
+			f_star, x_star, y_star = q_tmp[3*i_star:3*i_star+3]
+			p_star = np.copy(p_tmp[3*i_star:3*i_star+3])
+			q_star = np.copy(q_tmp[3*i_star:3*i_star+3])
+
+			# Draw split parameters
+			dx, dy = np.random.randn(size=2) * self.K_split # distance
+			dr_sq = dx**2 + dy**2 # Square distance			
+			F = BETA.rvs(self.beta_a, self.beta_b, size=1)[0] # Flux split fraction
+
+			# Compute q', q"
+			f_prime = F * f_star
+			x_prime = x_star + (1-F) * dx
+			y_prime = y_star + (1-F) * dy			
+			f_dprime = (1-F) * f_star
+			x_dprime = x_star - F * dx
+			y_dprime = y_star - F * dy
+
+			q_prime = np.array([f_prime, x_prime, y_prime])
+			q_dprime = np.array([f_dprime, x_dprime, y_dprime])
+
+			# Save the new values
+			q[3*i_star:3*i_star+3] = q_prime
+			q[-3:] = q_dprime
+
+			# Temporariliy store global variables
+			Nobjs_tmp = np.copy(self.Nobjs)
+			d_tmp = np.copy(self.d)
+
+			# Draw momenta p', p" and compute the associated kinetic energies
+			# AND compute one particle level energies
+			self.Nobjs = 1
+			self.d = 3	
+			# p'
+			H_diag = self.H(q_prime, grad=False)
+			p_prime = self.u_sample(self.d) * np.sqrt(H_diag)
+			p[3*i_star:3*i_star+3] = p_prime
+			T_prime = self.T(p_prime, H_diag)
+			# p"
+			H_diag = self.H(q_dprime, grad=False)
+			p_dprime = self.u_sample(self.d) * np.sqrt(H_diag)
+			p[-3:] = p_dprime
+			T_dprime = self.T(p_dprime, H_diag)
+			# p_star
+			H_diag = self.H(q_star, grad=False)
+			T_star = self.T(p_star, H_diag)
+			
+			# Factor to be added to ln_alpha0
+			factor = (-3/2.) + np.log(f_star) - BETA.logpdf(F, self.beta_a, self.beta_b) \
+					+ np.log(2 * np.pi * self.K_split**2) + (dr_sq / (2 * self.K_split**2)) \
+					+ T_prime + T_dprime - T_star
+
+			# Update the global numbers
+			self.d = d_tmp + 3
+			self.Nobjs = Nobjs_tmp + 1
+			# print "Split"
+		else: # If Merge
+			#---- Compute the probability of merge q(F)q(dx, dy)
+			# Create vectors of flux and xy-pos
+			f_vec = np.zeros(self.Nobjs)
+			x_vec = np.zeros(self.Nobjs)
+			y_vec = np.zeros(self.Nobjs)			
+			for i in xrange(self.Nobjs):
+				f_vec = q_tmp[3*i]
+				x_vec = q_tmp[3*i+1]
+				y_vec = q_tmp[3*i+2]				
+			# Compute F-matrix and the associated probability
+			F_matrix = f_vec / (f_vec.reshape((self.Nobjs, 1)) + f_vec)
+			ibool = np.abs(F_matrix-0.5) < 1e-6
+			BETA_F = BETA.pdf(F_matrix, self.beta_a, self.beta_b)
+			BETA_F[ibool] = 0. # Eliminate self-merging possibility.
+			# Compute distance matrix and the corresponding probability.
+			R_sq = (x_vec.reshape((self.Nobjs, 1)) - x_vec)**2 + (y_vec.reshape((self.Nobjs, 1)) - y_vec)**2
+			Q_dxdy = np.exp(-R_sq / (2. * self.K_split**2)) / (2. * np.pi * self.K_split**2)
+			# Total probility
+			P_choose = BETA_F * Q_dxdy
+
+			#----Choose the objects to merge
+			pair_num = np.random.choice(xrange(self.Nobjs**2), p=P_choose.ravel())
+			idx_prime = pair_num // self.Nobjs
+			idx_dprime = pair_num % self.Nobjs
+
+			#----Import the objects to merge and compute the result.
+			q_prime = q_tmp[3*idx_prime:3*idx_prime+3]
+			p_prime = p_tmp[3*idx_prime:3*idx_prime+3]
+			q_dprime = q_tmp[3*idx_dprime:3*idx_dprime+3]
+			p_dprime = p_tmp[3*idx_dprime:3*idx_dprime+3]
+			# Unpack
+			f_prime, x_prime, y_prime = q_prime
+			f_dprime, x_dprime, y_dprime = q_dprime
+			# Comptue u varibles
+			F = f_prime / (f_prime + f_dprime)
+			dx = x_prime - x_dprime
+			dy = y_prime - y_dprime
+			dr_sq = dx**2 + dy**2
+			# Compute merged
+			f_star = f_prime + f_dprime
+			x_star = F * x_prime + (1-F) * x_dprime
+			y_star = F * y_prime + (1-F) * y_dprime
+			q_star = np.array([f_star, x_star, y_star])
+
+			# Temporariliy store global variables
+			Nobjs_tmp = np.copy(self.Nobjs)
+			d_tmp = np.copy(self.d)
+
+			# Draw momenta p', p" and compute the associated kinetic energies
+			# AND compute one particle level energies
+			self.Nobjs = 1
+			self.d = 3	
+			# p'
+			H_diag = self.H(q_prime, grad=False)
+			T_prime = self.T(p_prime, H_diag)
+			# p"
+			H_diag = self.H(q_dprime, grad=False)
+			T_dprime = self.T(p_dprime, H_diag)
+			# p_star
+			H_diag = self.H(q_star, grad=False)
+			p_star = self.u_sample(self.d) * np.sqrt(H_diag)	
+			T_star = self.T(p_star, H_diag)			
+
+			#----Save the new p, q-values
+			q = []
+			p = []
+			# Ordering indicies
+			if idx_prime < idx_dprime:
+				idx_a = idx_prime
+				idx_b = idx_dprime
+			else:
+				idx_b = idx_prime
+				idx_a = idx_dprime
+			# Append retained ones and concatenate
+			q.append(q_tmp[:3*idx_a])
+			q.append(q_tmp[3*idx_a+3:3*idx_b])
+			q.append(q_tmp[3*idx_b+3:])
+			q.append(q_star) # Put the star last
+			q = np.concatenate(q)
+			p.append(p_tmp[:3*idx_a])
+			p.append(p_tmp[3*idx_a+3:3*idx_b])
+			p.append(p_tmp[3*idx_b+3:])
+			p.append(p_star) # Put the star last
+			p = np.concatenate(p)
+
+			# Factor to be added to ln_alpha0
+			factor = (3/2.) - np.log(f_star) + BETA.logpdf(F, self.beta_a, self.beta_b) \
+					- np.log(2 * np.pi * self.K_split**2) - (dr_sq / (2 * self.K_split**2)) \
+					- T_prime - T_dprime + T_star
+
+			# Update the global numbers
+			self.d = d_tmp + 3
+			self.Nobjs = Nobjs_tmp + 1
 		return q, p, factor
 
 	def R_accept_report(self, idx_iter, cumulative = True, running = True, run_window = 10):
