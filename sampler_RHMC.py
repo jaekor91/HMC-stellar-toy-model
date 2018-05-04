@@ -1296,7 +1296,7 @@ class multi_gym(base_class):
 			q_star = np.copy(q_tmp[3*i_star:3*i_star+3])
 
 			# Draw split parameters
-			dx, dy = np.random.randn(size=2) * self.K_split # distance
+			dx, dy = np.random.randn(2) * self.K_split # distance
 			dr_sq = dx**2 + dy**2 # Square distance			
 			F = BETA.rvs(self.beta_a, self.beta_b, size=1)[0] # Flux split fraction
 
@@ -1353,9 +1353,9 @@ class multi_gym(base_class):
 			x_vec = np.zeros(self.Nobjs)
 			y_vec = np.zeros(self.Nobjs)			
 			for i in xrange(self.Nobjs):
-				f_vec = q_tmp[3*i]
-				x_vec = q_tmp[3*i+1]
-				y_vec = q_tmp[3*i+2]				
+				f_vec[i] = q_tmp[3*i]
+				x_vec[i] = q_tmp[3*i+1]
+				y_vec[i] = q_tmp[3*i+2]				
 			# Compute F-matrix and the associated probability
 			F_matrix = f_vec / (f_vec.reshape((self.Nobjs, 1)) + f_vec)
 			ibool = np.abs(F_matrix-0.5) < 1e-6
