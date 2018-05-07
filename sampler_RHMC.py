@@ -300,21 +300,21 @@ class base_class(object):
 
 		Assume a fixed background.
 		"""
-		# if f_pos: # If f is required to be positive
-		# 	# Check whether all f is positive
-		# 	all_f_pos = True
-		# 	for i in xrange(self.Nobjs):
-		# 		if q[3 * i] < 0:
-		# 			all_f_pos = False
-		# 			break
+		if f_pos: # If f is required to be positive
+			# Check whether all f is positive
+			all_f_pos = True
+			for i in xrange(self.Nobjs):
+				if q[3 * i] < self.f_lim:
+					all_f_pos = False
+					break
 
-		# 	if not all_f_pos: # If not all f is positive, then return infinity.
-		# 		return np.infty
+			if not all_f_pos: # If not all f is positive, then return infinity.
+				return np.infty
 
-		# for i in xrange(self.Nobjs):
-		# 	x, y = q[3*i+1: 3*i+3]
-		# 	if  (x < 0) or (x > self.num_rows-1) or (y < 0) or (y > self.num_cols-1):
-		# 		return np.infty
+		for i in xrange(self.Nobjs):
+			x, y = q[3*i+1: 3*i+3]
+			if  (x < -1) or (x > self.num_rows+1) or (y < -1) or (y > self.num_cols+1):
+				return np.infty
 
 		V_prior = 0.
 		if self.V_prior_const is None:
@@ -1180,7 +1180,7 @@ class multi_gym(base_class):
 						self.d += 3				
 					q_tmp = self.q_chain[l, :self.Nobjs * 3]	
 
-			if verbose and ((l%10) == 0):
+			if verbose and ((l%50) == 0):
 				print "/---- Completed iteration %d" % l
 				print "N_objs: %d\n" % self.Nobjs
 				self.R_accept_report(idx_iter = l, run_window = 10)
@@ -1282,7 +1282,7 @@ class multi_gym(base_class):
 			assert False
 
 		if split_merge: # If split
-			print "Split"		
+			# print "Split"		/
 			q = np.zeros(q_tmp.size + 3)
 			p = np.zeros(q_tmp.size + 3)
 
@@ -1347,7 +1347,7 @@ class multi_gym(base_class):
 			self.d = d_tmp + 3
 			self.Nobjs = Nobjs_tmp + 1
 		else: # If Merge
-			print "Merge"		
+			# print "Merge"		
 			#---- Compute the probability of merge q(F)q(dx, dy)
 			# Create vectors of flux and xy-pos
 			f_vec = np.zeros(self.Nobjs)
